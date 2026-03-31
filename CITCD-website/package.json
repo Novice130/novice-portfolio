@@ -1,0 +1,12 @@
+{
+  "name": "citcd-website",
+  "version": "1.0.0",
+  "description": "CITCD.org Website - Abraar Academy, American Muslim Cemetery, Community Center",
+  "scripts": {
+    "dev": "npx live-server --port=3000 --open",
+    "start": "npx live-server --port=3000"
+  },
+  "keywords": ["citcd", "islamic-school", "harvey-il", "muslim-cemetery"],
+  "author": "CITCD",
+  "license": "ISC"
+}

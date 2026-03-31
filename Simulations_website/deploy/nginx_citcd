@@ -1,0 +1,23 @@
+server {
+    listen 80;
+    server_name citcd.learnnovice.com; # replace with your domain or use learnnovice.com
+
+    access_log /var/log/nginx/citcd.access.log;
+    error_log /var/log/nginx/citcd.error.log;
+
+    location /static/ {
+        alias /var/www/citcd/static/;
+    }
+
+    location /uploads/ {
+        alias /var/www/citcd/uploads/;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/citcd.sock;
+    }
+}
+
+# If you prefer to serve under a path (learnnovice.com/citcd) you will need to
+# adjust proxy headers and your Flask `APPLICATION_ROOT` or use `SCRIPT_NAME`.

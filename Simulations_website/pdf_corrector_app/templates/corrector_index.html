@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Corrector - Fix PPTX Spacing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-section {
+            margin-bottom: 25px;
+        }
+
+        .upload-section label {
+            display: block;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .file-input-label.has-file {
+            background: #e7f3ff;
+            border-color: #667eea;
+            border-style: solid;
+        }
+
+        .file-name {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .file-placeholder {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .optional-badge {
+            display: inline-block;
+            background: #ffc107;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            color: #555;
+            font-size: 13px;
+            padding: 4px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .error-message {
+            background: #ffe6e6;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .error-message p {
+            color: #dc3545;
+            font-weight: 600;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 PDF Corrector</h1>
+        <p class="subtitle">Fix spacing errors in PowerPoint presentations using PDF reference</p>
+
+        <div class="info-box">
+            <h3>How it works:</h3>
+            <ul>
+                <li>Upload your PPTX file (from word-to-presentation converter)</li>
+                <li>Optionally upload the original PDF for reference</li>
+                <li>Get a corrected PPTX with proper spacing</li>
+            </ul>
+        </div>
+
+        <form id="correctorForm" enctype="multipart/form-data">
+            <div class="upload-section">
+                <label for="pptx_file">PowerPoint File (PPTX) *</label>
+                <div class="file-input-wrapper">
+                    <input type="file" id="pptx_file" name="pptx_file" accept=".pptx" required>
+                    <label for="pptx_file" class="file-input-label" id="pptxLabel">
+                        <span class="file-placeholder">Click to select PPTX file</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="upload-section">
+                <label for="pdf_file">
+                    Original PDF File
+                    <span class="optional-badge">OPTIONAL</span>
+                </label>
+                <div class="file-input-wrapper">
+                    <input type="file" id="pdf_file" name="pdf_file" accept=".pdf">
+                    <label for="pdf_file" class="file-input-label" id="pdfLabel">
+                        <span class="file-placeholder">Click to select PDF file (optional)</span>
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                🔧 Correct PPTX
+            </button>
+        </form>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Processing...</div>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            <p id="errorText"></p>
+        </div>
+    </div>
+
+    <script>
+        const pptxInput = document.getElementById('pptx_file');
+        const pdfInput = document.getElementById('pdf_file');
+        const pptxLabel = document.getElementById('pptxLabel');
+        const pdfLabel = document.getElementById('pdfLabel');
+        const form = document.getElementById('correctorForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+
+        // Handle file selection display
+        pptxInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                pptxLabel.classList.add('has-file');
+                pptxLabel.innerHTML = `<span class="file-name">📎 ${this.files[0].name}</span>`;
+            } else {
+                pptxLabel.classList.remove('has-file');
+                pptxLabel.innerHTML = '<span class="file-placeholder">Click to select PPTX file</span>';
+            }
+        });
+
+        pdfInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                pdfLabel.classList.add('has-file');
+                pdfLabel.innerHTML = `<span class="file-name">📎 ${this.files[0].name}</span>`;
+            } else {
+                pdfLabel.classList.remove('has-file');
+                pdfLabel.innerHTML = '<span class="file-placeholder">Click to select PDF file (optional)</span>';
+            }
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Hide error message
+            errorMessage.classList.remove('show');
+
+            // Validate PPTX file
+            if (!pptxInput.files.length) {
+                showError('Please select a PPTX file');
+                return;
+            }
+
+            // Show progress
+            submitBtn.disabled = true;
+            progressContainer.style.display = 'block';
+            progressFill.style.width = '30%';
+            progressText.textContent = 'Uploading files...';
+
+            // Create form data
+            const formData = new FormData();
+            formData.append('pptx_file', pptxInput.files[0]);
+            if (pdfInput.files.length > 0) {
+                formData.append('pdf_file', pdfInput.files[0]);
+            }
+
+            try {
+                progressFill.style.width = '60%';
+                progressText.textContent = 'Applying corrections...';
+
+                const response = await fetch('/correct', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Correction failed');
+                }
+
+                progressFill.style.width = '90%';
+                progressText.textContent = 'Preparing download...';
+
+                // Get the corrected file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = pptxInput.files[0].name.replace('.pptx', '_CORRECTED.pptx');
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                progressFill.style.width = '100%';
+                progressText.textContent = '✅ Download complete!';
+
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    resetForm();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message);
+                resetForm();
+            }
+        });
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        function resetForm() {
+            submitBtn.disabled = false;
+            progressContainer.style.display = 'none';
+            progressFill.style.width = '0%';
+        }
+    </script>
+</body>
+</html>

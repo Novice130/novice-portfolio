@@ -1,0 +1,42 @@
+upstream citcd {
+    server unix:/run/citcd.sock;
+}
+
+server {
+    listen 80;
+    server_name learnnovice.com; # replace with your domain
+
+    # Serve main site as usual here (other location blocks)...
+
+    # Serve the app under /citcd
+    location /citcd/static/ {
+        alias /var/www/citcd/static/;
+    }
+
+    location /citcd/uploads/ {
+        alias /var/www/citcd/uploads/;
+    }
+
+    # Ensure /citcd (without slash) redirects to /citcd/
+    location = /citcd {
+        return 301 /citcd/;
+    }
+
+    location /citcd/ {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://citcd/;
+        proxy_redirect off;
+    }
+
+    # Optional: serve other root-level paths for your main site below
+}
+
+# Notes:
+# - This configuration maps requests to learnnovice.com/citcd/* to the Gunicorn socket
+#   and serves static files for the app from /var/www/citcd/static and /var/www/citcd/uploads.
+# - Keep Cloudflare DNS pointing to your VM (A record for learnnovice.com). No DNS change
+#   is required for the /citcd path. When obtaining certificates, make sure Cloudflare proxy is
+#   temporarily disabled (DNS-only) or use Cloudflare Origin Certificates.

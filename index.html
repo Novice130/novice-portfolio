@@ -1,289 +1,562 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LearnNovice | Web Development & IT Solutions</title>
-    <meta name="description" content="LearnNovice delivers cutting-edge web development, IT infrastructure, and digital transformation solutions. We build platforms that empower businesses and educators.">
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LearnNovice | Web Development & IT Solutions</title>
+<meta name="description" content="LearnNovice delivers cutting-edge web development, IT infrastructure, and digital transformation solutions. We build platforms that empower businesses and educators.">
+<link rel="icon" type="image/png" href="logo.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                brand: { 50: '#eefff8', 100: '#d6ffee', 200: '#b0ffde', 300: '#73ffc6', 400: '#2ffba5', 500: '#00e68a', 600: '#00c06e', 700: '#00965a', 800: '#007548', 900: '#00613d', 950: '#003722' },
+                dark: { 50: '#f6f6f9', 100: '#ececf2', 200: '#d5d5e2', 300: '#b0b0c8', 400: '#8585a9', 500: '#66668f', 600: '#515176', 700: '#424260', 800: '#393951', 900: '#1a1a2e', 950: '#0f0f1a' }
+            },
+            fontFamily: {
+                heading: ['Space Grotesk', 'sans-serif'],
+                body: ['Inter', 'sans-serif']
+            }
+        }
+    }
+}
+</script>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; }
+
+    .project-card { transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease; }
+    .project-card:hover { transform: translateY(-8px); box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.5); }
+    .project-card:hover .project-img { transform: scale(1.05); }
+    .project-img { transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+    .project-card:hover .project-overlay { opacity: 1; }
+    .project-overlay { transition: opacity 0.3s ease; }
+
+    .fade-up { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    .glow-ring { box-shadow: 0 0 0 1px rgba(0, 230, 138, 0.1), 0 0 40px -10px rgba(0, 230, 138, 0.15); }
+    .glow-ring:hover { box-shadow: 0 0 0 1px rgba(0, 230, 138, 0.3), 0 0 60px -10px rgba(0, 230, 138, 0.25); }
+
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    .float-anim { animation: float 6s ease-in-out infinite; }
+    .float-anim-delay { animation: float 6s ease-in-out infinite; animation-delay: 2s; }
+
+    .gradient-text { background: linear-gradient(135deg, #00e68a, #00c06e, #00965a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    .nav-blur { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+
+    @media (max-width: 768px) {
+        .mobile-menu { display: none; }
+        .mobile-menu.open { display: flex; }
+    }
+</style>
 </head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="container nav-container">
-            <a href="#" class="logo"><img src="logo.png" alt="LearnNovice Logo" class="logo-img">Learn! <span>Novice</span></a>
-            <div class="nav-links">
-                <a href="#about">About</a>
-                <a href="#services">Services</a>
-                <a href="#portfolio">Portfolio</a>
-                <a href="#contact" class="btn btn-primary">Get in Touch</a>
-            </div>
-            <button class="mobile-menu-btn">☰</button>
-        </div>
-    </nav>
+<body class="bg-dark-950 text-white antialiased">
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <div class="hero-badge">� Transforming Ideas into Digital Reality</div>
-                <h1>Welcome to <span class="gradient-text">Novice Digital Solutions</span></h1>
-                <p class="hero-subtitle">Web Development • IT Infrastructure • Digital Transformation</p>
-                <p class="hero-description">
-                    We build powerful digital platforms that solve real problems. 
-                    From matrimony platforms to educational tools, real estate websites to cybersecurity training — we bring your vision to life.
+<!-- Navigation -->
+<nav class="fixed top-0 w-full z-50 nav-blur bg-dark-950/80 border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <a href="#" class="flex items-center gap-3">
+            <img src="logo.png" alt="LearnNovice" class="h-9 w-9 rounded-lg">
+            <span class="font-heading text-xl font-bold tracking-tight">Learn<span class="text-brand-500">Novice</span></span>
+        </a>
+        <div class="hidden md:flex items-center gap-8">
+            <a href="#about" class="text-sm text-dark-300 hover:text-white transition-colors font-medium">About</a>
+            <a href="#services" class="text-sm text-dark-300 hover:text-white transition-colors font-medium">Services</a>
+            <a href="#portfolio" class="text-sm text-dark-300 hover:text-white transition-colors font-medium">Portfolio</a>
+            <a href="#booking" class="text-sm text-dark-300 hover:text-white transition-colors font-medium">Book Call</a>
+            <a href="#contact" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:shadow-lg hover:shadow-brand-600/20">Contact Us</a>
+        </div>
+        <button class="md:hidden text-white text-2xl" id="menuBtn" aria-label="Toggle menu">&#9776;</button>
+    </div>
+    <!-- Mobile menu -->
+    <div class="mobile-menu md:hidden flex-col items-center gap-6 py-8 bg-dark-950/95 border-t border-white/5" id="mobileMenu">
+        <a href="#about" class="text-dark-300 hover:text-white transition-colors font-medium">About</a>
+        <a href="#services" class="text-dark-300 hover:text-white transition-colors font-medium">Services</a>
+        <a href="#portfolio" class="text-dark-300 hover:text-white transition-colors font-medium">Portfolio</a>
+        <a href="#booking" class="text-dark-300 hover:text-white transition-colors font-medium">Book Call</a>
+        <a href="#contact" class="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold">Contact Us</a>
+    </div>
+</nav>
+
+<main>
+    <!-- Hero -->
+    <section class="min-h-screen flex items-center relative overflow-hidden pt-24 pb-16 px-6">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-brand-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-brand-800/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-16 items-center relative z-10">
+            <div class="space-y-8">
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-brand-600/10 border border-brand-600/20 rounded-full">
+                    <div class="w-2 h-2 bg-brand-500 rounded-full animate-pulse"></div>
+                    <span class="text-brand-400 text-sm font-medium">Transforming Ideas into Digital Reality</span>
+                </div>
+                <h1 class="font-heading text-5xl lg:text-7xl font-bold leading-[1.05] tracking-tight">
+                    We Build<br>
+                    <span class="gradient-text">Digital Solutions</span><br>
+                    That Matter
+                </h1>
+                <p class="text-dark-300 text-lg max-w-lg leading-relaxed">
+                    From matrimony platforms to educational tools, e-commerce to real estate websites &mdash; we bring your vision to life with modern technology.
                 </p>
-                <div class="hero-cta">
-                    <a href="#portfolio" class="btn btn-primary">View Our Work</a>
-                    <a href="#contact" class="btn btn-secondary">Start Your Project</a>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#booking" class="bg-brand-600 hover:bg-brand-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all hover:shadow-xl hover:shadow-brand-600/25 flex items-center gap-2">
+                        Book a Call <span class="text-xl">&rarr;</span>
+                    </a>
+                    <a href="#portfolio" class="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition-all">
+                        View Our Work
+                    </a>
                 </div>
             </div>
-            <div class="hero-visual">
-                <div class="floating-card card-1">
-                    <span class="card-icon">🌐</span>
-                    <span>Web Development</span>
+            <div class="hidden lg:block relative h-[450px]">
+                <div class="absolute top-[5%] left-[10%] bg-dark-900/80 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-3 float-anim backdrop-blur-sm">
+                    <span class="text-2xl">&#127760;</span>
+                    <div><div class="font-semibold text-sm">Web Development</div><div class="text-dark-400 text-xs">Next.js &bull; React &bull; Full-Stack</div></div>
                 </div>
-                <div class="floating-card card-2">
-                    <span class="card-icon">🖥️</span>
-                    <span>IT Infrastructure</span>
+                <div class="absolute top-[25%] right-[5%] bg-dark-900/80 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-3 float-anim-delay backdrop-blur-sm">
+                    <span class="text-2xl">&#127891;</span>
+                    <div><div class="font-semibold text-sm">EdTech Solutions</div><div class="text-dark-400 text-xs">LMS &bull; Simulations</div></div>
                 </div>
-                <div class="floating-card card-3">
-                    <span class="card-icon">🎓</span>
-                    <span>EdTech Solutions</span>
+                <div class="absolute bottom-[25%] left-[5%] bg-dark-900/80 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-3 float-anim backdrop-blur-sm" style="animation-delay:1s">
+                    <span class="text-2xl">&#128187;</span>
+                    <div><div class="font-semibold text-sm">IT Infrastructure</div><div class="text-dark-400 text-xs">Cloud &bull; Docker &bull; Linux</div></div>
                 </div>
-                <div class="floating-card card-4">
-                    <span class="card-icon">⚡</span>
-                    <span>Custom Solutions</span>
+                <div class="absolute bottom-[5%] right-[15%] bg-dark-900/80 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-3 float-anim-delay backdrop-blur-sm" style="animation-delay:3s">
+                    <span class="text-2xl">&#128188;</span>
+                    <div><div class="font-semibold text-sm">Business Platforms</div><div class="text-dark-400 text-xs">E-commerce &bull; SaaS</div></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- About Section -->
-    <section id="about" class="about-section">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-tag">About Us</span>
-                <h2>Building Digital Solutions That Matter</h2>
-            </div>
-            <div class="about-grid">
-                <div class="about-content">
-                    <p class="about-lead">
-                        <strong>LearnNovice</strong> is a digital solutions company specializing in web development, IT infrastructure, and educational technology.
-                    </p>
-                    <p>
-                        We believe technology should empower people, not complicate their lives. Our team brings together expertise in modern web technologies, cloud infrastructure, and user-centered design to create platforms that make a real difference.
-                    </p>
-                    <p>
-                        From privacy-focused matrimony platforms to comprehensive learning management systems, we take pride in delivering solutions that our clients and their users love.
-                    </p>
+    <!-- About -->
+    <section id="about" class="py-24 px-6 bg-dark-900/50">
+        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
+            <div class="space-y-8 fade-up">
+                <div class="inline-flex items-center gap-2">
+                    <div class="w-8 h-[2px] bg-brand-500"></div>
+                    <span class="text-brand-400 text-sm font-bold tracking-widest uppercase">About Us</span>
                 </div>
-                <div class="about-stats">
-                    <div class="stat-item">
-                        <div class="stat-icon">🚀</div>
-                        <div class="stat-info">
-                            <span class="stat-label">Projects Delivered</span>
-                            <span class="stat-value">10+</span>
+                <h2 class="font-heading text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+                    Building Digital<br><span class="text-brand-500">Solutions</span> That Empower
+                </h2>
+                <div class="space-y-4 text-dark-300 leading-relaxed">
+                    <p><strong class="text-white">LearnNovice</strong> is a digital solutions company specializing in web development, IT infrastructure, and educational technology.</p>
+                    <p>We believe technology should empower people, not complicate their lives. Our team brings together expertise in modern web technologies, cloud infrastructure, and user-centered design to create platforms that make a real difference.</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 fade-up">
+                <div class="bg-dark-900 border border-white/5 rounded-2xl p-6 text-center glow-ring transition-all">
+                    <div class="text-3xl font-bold font-heading gradient-text">10+</div>
+                    <div class="text-dark-400 text-sm mt-2 font-medium">Projects Delivered</div>
+                </div>
+                <div class="bg-dark-900 border border-white/5 rounded-2xl p-6 text-center glow-ring transition-all">
+                    <div class="text-3xl font-bold font-heading gradient-text">6+</div>
+                    <div class="text-dark-400 text-sm mt-2 font-medium">Live Websites</div>
+                </div>
+                <div class="bg-dark-900 border border-white/5 rounded-2xl p-6 text-center glow-ring transition-all">
+                    <div class="text-3xl font-bold font-heading gradient-text">100%</div>
+                    <div class="text-dark-400 text-sm mt-2 font-medium">Client Satisfaction</div>
+                </div>
+                <div class="bg-dark-900 border border-white/5 rounded-2xl p-6 text-center glow-ring transition-all">
+                    <div class="text-3xl font-bold font-heading text-brand-500">&#9889;</div>
+                    <div class="text-dark-400 text-sm mt-2 font-medium">Quality First</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services -->
+    <section id="services" class="py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 fade-up">
+                <span class="text-brand-400 text-sm font-bold tracking-widest uppercase">Our Services</span>
+                <h2 class="font-heading text-4xl lg:text-5xl font-bold mt-4 tracking-tight">What We Offer</h2>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 fade-up">
+                <div class="lg:col-span-2 bg-gradient-to-br from-brand-900/50 to-dark-900 border border-brand-600/20 rounded-3xl p-8 flex flex-col justify-between min-h-[300px] group hover:border-brand-600/40 transition-all">
+                    <div>
+                        <span class="text-4xl">&#127760;</span>
+                        <h3 class="font-heading text-2xl font-bold mt-4">Web Development</h3>
+                        <p class="text-dark-300 mt-3 leading-relaxed">Modern, responsive web applications built with cutting-edge technologies. From landing pages to full-stack platforms.</p>
+                    </div>
+                    <div class="flex gap-3 mt-6 text-sm font-mono text-brand-400">
+                        <span>Next.js</span><span>&bull;</span><span>React</span><span>&bull;</span><span>Full-Stack</span>
+                    </div>
+                </div>
+                <div class="bg-dark-900 border border-white/5 rounded-3xl p-8 flex flex-col justify-between group hover:border-brand-600/20 transition-all">
+                    <div>
+                        <span class="text-3xl">&#127891;</span>
+                        <h3 class="font-heading text-xl font-bold mt-4">EdTech Solutions</h3>
+                        <p class="text-dark-400 text-sm mt-3 leading-relaxed">Learning platforms, interactive simulations, and educational tools.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-4">
+                        <span class="px-2 py-1 bg-white/5 rounded text-xs text-dark-300">LMS</span>
+                        <span class="px-2 py-1 bg-white/5 rounded text-xs text-dark-300">Interactive</span>
+                    </div>
+                </div>
+                <div class="bg-dark-900 border border-white/5 rounded-3xl p-8 flex flex-col justify-between group hover:border-brand-600/20 transition-all">
+                    <div>
+                        <span class="text-3xl">&#128188;</span>
+                        <h3 class="font-heading text-xl font-bold mt-4">Business Platforms</h3>
+                        <p class="text-dark-400 text-sm mt-3 leading-relaxed">E-commerce, real estate, matrimony, and specialized business solutions.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-4">
+                        <span class="px-2 py-1 bg-white/5 rounded text-xs text-dark-300">E-commerce</span>
+                        <span class="px-2 py-1 bg-white/5 rounded text-xs text-dark-300">SEO</span>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 bg-dark-900 border border-white/5 rounded-3xl p-8 flex items-center gap-8 group hover:border-brand-600/20 transition-all">
+                    <div>
+                        <span class="text-3xl">&#128421;</span>
+                        <h3 class="font-heading text-xl font-bold mt-4">IT Infrastructure</h3>
+                        <p class="text-dark-400 text-sm mt-3 leading-relaxed">Cloud deployment, server management, containerization, and enterprise-grade IT solutions.</p>
+                    </div>
+                    <div class="hidden sm:flex flex-wrap gap-2 text-xs font-mono text-dark-400 shrink-0">
+                        <span class="px-2 py-1 bg-white/5 rounded">Docker</span>
+                        <span class="px-2 py-1 bg-white/5 rounded">Nginx</span>
+                        <span class="px-2 py-1 bg-white/5 rounded">Linux</span>
+                        <span class="px-2 py-1 bg-white/5 rounded">Google Cloud</span>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 bg-dark-900 border border-white/5 rounded-3xl p-8 flex items-center gap-8 group hover:border-brand-600/20 transition-all">
+                    <div>
+                        <span class="text-3xl">&#128736;</span>
+                        <h3 class="font-heading text-xl font-bold mt-4">Custom Solutions</h3>
+                        <p class="text-dark-400 text-sm mt-3 leading-relaxed">File converters, automation tools, remote management systems, and bespoke software tailored to your needs.</p>
+                    </div>
+                    <div class="hidden sm:flex flex-wrap gap-2 text-xs font-mono text-dark-400 shrink-0">
+                        <span class="px-2 py-1 bg-white/5 rounded">Python</span>
+                        <span class="px-2 py-1 bg-white/5 rounded">Automation</span>
+                        <span class="px-2 py-1 bg-white/5 rounded">APIs</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio -->
+    <section id="portfolio" class="py-24 px-6 bg-dark-900/50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 fade-up">
+                <span class="text-brand-400 text-sm font-bold tracking-widest uppercase">Our Work</span>
+                <h2 class="font-heading text-4xl lg:text-5xl font-bold mt-4 tracking-tight">Featured Projects</h2>
+                <p class="text-dark-400 mt-4 max-w-2xl mx-auto">A selection of platforms and websites we've built for clients across industries.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+                <!-- At-Tayyibun -->
+                <div class="project-card bg-dark-900 border border-white/5 rounded-3xl overflow-hidden group lg:col-span-2 fade-up">
+                    <div class="aspect-[16/8] overflow-hidden relative">
+                        <img src="images/attayyibun.png" alt="At-Tayyibun Matrimony Platform" class="project-img w-full h-full object-cover object-top">
+                        <div class="project-overlay absolute inset-0 bg-gradient-to-t from-dark-950/90 via-dark-950/30 to-transparent opacity-0 flex items-end p-8">
+                            <a href="https://attayyibun.com" target="_blank" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all">Visit Site &rarr;</a>
                         </div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-icon">😊</div>
-                        <div class="stat-info">
-                            <span class="stat-label">Happy Clients</span>
-                            <span class="stat-value">Growing</span>
+                    <div class="p-8">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-heading text-2xl font-bold">At-Tayyibun</h3>
+                            <span class="text-xs font-bold tracking-wider text-brand-400 uppercase bg-brand-600/10 px-3 py-1 rounded-full">Matrimony Platform</span>
                         </div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-icon">💻</div>
-                        <div class="stat-info">
-                            <span class="stat-label">Focus</span>
-                            <span class="stat-value">Quality & Innovation</span>
+                        <p class="text-dark-400 text-sm leading-relaxed">Privacy-first matrimony platform for Muslims in the United States. Features AI-generated avatars, marriage-focused matching, and secure communication.</p>
+                        <div class="flex gap-3 mt-4 text-xs font-mono text-dark-500">
+                            <span>Next.js</span><span>&bull;</span><span>Prisma</span><span>&bull;</span><span>Auth</span><span>&bull;</span><span>AI Avatars</span>
                         </div>
                     </div>
                 </div>
+
+                <!-- Modest Ummah -->
+                <div class="project-card bg-dark-900 border border-white/5 rounded-3xl overflow-hidden group fade-up">
+                    <div class="aspect-[4/3] overflow-hidden relative">
+                        <img src="images/modestummah.png" alt="Modest Ummah E-commerce" class="project-img w-full h-full object-cover object-top">
+                        <div class="project-overlay absolute inset-0 bg-gradient-to-t from-dark-950/90 via-dark-950/30 to-transparent opacity-0 flex items-end p-6">
+                            <a href="https://modestummah.com" target="_blank" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all">Visit Site &rarr;</a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-heading text-xl font-bold">Modest Ummah</h3>
+                            <span class="text-[10px] font-bold tracking-wider text-brand-400 uppercase bg-brand-600/10 px-2 py-1 rounded-full">E-commerce</span>
+                        </div>
+                        <p class="text-dark-400 text-sm leading-relaxed">Premium modest fashion e-commerce platform with Stripe payments, product catalog, and PWA support.</p>
+                        <div class="flex gap-2 mt-4 text-xs font-mono text-dark-500">
+                            <span>Next.js</span><span>&bull;</span><span>Stripe</span><span>&bull;</span><span>Drizzle</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Build Imara -->
+                <div class="project-card bg-dark-900 border border-white/5 rounded-3xl overflow-hidden group fade-up">
+                    <div class="aspect-[4/3] overflow-hidden relative">
+                        <img src="images/buildimara.png" alt="Build Imara Real Estate" class="project-img w-full h-full object-cover object-top">
+                        <div class="project-overlay absolute inset-0 bg-gradient-to-t from-dark-950/90 via-dark-950/30 to-transparent opacity-0 flex items-end p-6">
+                            <a href="https://buildimara.com" target="_blank" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all">Visit Site &rarr;</a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-heading text-xl font-bold">Build Imara</h3>
+                            <span class="text-[10px] font-bold tracking-wider text-brand-400 uppercase bg-brand-600/10 px-2 py-1 rounded-full">Real Estate</span>
+                        </div>
+                        <p class="text-dark-400 text-sm leading-relaxed">Professional website for Hyderabad's trusted home builders. Transparent pricing and modern design.</p>
+                        <div class="flex gap-2 mt-4 text-xs font-mono text-dark-500">
+                            <span>HTML/CSS</span><span>&bull;</span><span>Tailwind</span><span>&bull;</span><span>SEO</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quran Learning -->
+                <div class="project-card bg-dark-900 border border-white/5 rounded-3xl overflow-hidden group fade-up">
+                    <div class="aspect-[4/3] overflow-hidden relative bg-dark-800">
+                        <img src="images/quran-learning.png" alt="Iqra Academy - Quran Learning" class="project-img w-full h-full object-cover">
+                        <div class="project-overlay absolute inset-0 bg-gradient-to-t from-dark-950/90 via-dark-950/30 to-transparent opacity-0 flex items-end p-6">
+                            <a href="https://quran.learnnovice.com" target="_blank" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all">Visit Site &rarr;</a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-heading text-xl font-bold">Iqra Academy</h3>
+                            <span class="text-[10px] font-bold tracking-wider text-brand-400 uppercase bg-brand-600/10 px-2 py-1 rounded-full">LMS</span>
+                        </div>
+                        <p class="text-dark-400 text-sm leading-relaxed">Online Quran learning platform with live 1:1 lessons, scheduling, and multi-platform support.</p>
+                        <div class="flex gap-2 mt-4 text-xs font-mono text-dark-500">
+                            <span>Next.js</span><span>&bull;</span><span>Stripe</span><span>&bull;</span><span>Push Notifs</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CPTS Companion -->
+                <div class="project-card bg-gradient-to-br from-dark-900 to-[#0d1117] border border-brand-600/10 rounded-3xl overflow-hidden group lg:col-span-2 fade-up">
+                    <div class="p-8 flex flex-col md:flex-row gap-8 items-center">
+                        <div class="flex-1 space-y-4">
+                            <div class="flex items-center gap-3">
+                                <span class="text-[10px] font-bold tracking-wider text-brand-400 uppercase bg-brand-600/10 px-3 py-1 rounded-full">Study Platform</span>
+                            </div>
+                            <h3 class="font-heading text-2xl font-bold">CPTS Companion</h3>
+                            <p class="text-dark-400 text-sm leading-relaxed">Comprehensive 30-day study companion for Hack The Box CPTS certification. Features structured learning plans, spaced-repetition flashcards, interactive mind maps, and progress tracking.</p>
+                            <div class="flex gap-3 text-xs font-mono text-dark-500">
+                                <span>Express.js</span><span>&bull;</span><span>PostgreSQL</span><span>&bull;</span><span>EJS</span>
+                            </div>
+                            <a href="https://cpts.learnnovice.com" target="_blank" class="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 text-sm font-semibold transition-colors mt-2">
+                                Visit Site <span>&rarr;</span>
+                            </a>
+                        </div>
+                        <div class="w-full md:w-64 h-48 rounded-2xl bg-[#0d1117] border border-brand-600/20 flex flex-col items-center justify-center gap-4 shrink-0">
+                            <div class="flex gap-2">
+                                <div class="w-2.5 h-2.5 bg-brand-500 rounded-sm animate-pulse"></div>
+                                <div class="w-2.5 h-2.5 bg-brand-500 rounded-sm animate-pulse" style="animation-delay:0.15s"></div>
+                                <div class="w-2.5 h-2.5 bg-brand-500 rounded-sm animate-pulse" style="animation-delay:0.3s"></div>
+                            </div>
+                            <div class="font-mono text-brand-500/60 text-xs tracking-widest">TRACKING_PROGRESS</div>
+                            <div class="w-32 h-1 bg-dark-800 rounded-full overflow-hidden">
+                                <div class="w-3/4 h-full bg-brand-600 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CITCD Website -->
+                <div class="project-card bg-dark-900 border border-white/5 rounded-3xl overflow-hidden group fade-up">
+                    <div class="aspect-[4/3] overflow-hidden relative">
+                        <img src="images/citcd-website.png" alt="CITCD Website" class="project-img w-full h-full object-cover object-top">
+                        <div class="project-overlay absolute inset-0 bg-gradient-to-t from-dark-950/90 via-dark-950/30 to-transparent opacity-0 flex items-end p-6">
+                            <a href="./CITCD-website/index.html" target="_blank" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all">View Site &rarr;</a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-heading text-xl font-bold">CITCD Website</h3>
+                            <span class="text-[10px] font-bold tracking-wider text-brand-400 uppercase bg-brand-600/10 px-2 py-1 rounded-full">NGO</span>
+                        </div>
+                        <p class="text-dark-400 text-sm leading-relaxed">Complete redesign for the Center for Islamic Teachings & Community Development serving Chicago's south suburbs.</p>
+                        <div class="flex gap-2 mt-4 text-xs font-mono text-dark-500">
+                            <span>HTML/CSS</span><span>&bull;</span><span>JavaScript</span><span>&bull;</span><span>Responsive</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PhET Simulations -->
+                <div class="project-card bg-dark-900 border border-white/5 rounded-3xl overflow-hidden group fade-up">
+                    <div class="aspect-[4/3] overflow-hidden relative">
+                        <img src="images/phet-simulations.png" alt="PhET Simulations Revamp" class="project-img w-full h-full object-cover object-top">
+                        <div class="project-overlay absolute inset-0 bg-gradient-to-t from-dark-950/90 via-dark-950/30 to-transparent opacity-0 flex items-end p-6">
+                            <a href="./Word%20to%20ppt/Phet-revamp/dist/index.html" target="_blank" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all">View Site &rarr;</a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-heading text-xl font-bold">PhET Simulations</h3>
+                            <span class="text-[10px] font-bold tracking-wider text-brand-400 uppercase bg-brand-600/10 px-2 py-1 rounded-full">EdTech</span>
+                        </div>
+                        <p class="text-dark-400 text-sm leading-relaxed">Modern redesign of PhET's interactive science and math simulations with intuitive filtering and games.</p>
+                        <div class="flex gap-2 mt-4 text-xs font-mono text-dark-500">
+                            <span>Vite</span><span>&bull;</span><span>React</span><span>&bull;</span><span>Playwright</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Word to Presentation -->
+                <div class="project-card bg-dark-900 border border-white/5 rounded-3xl overflow-hidden group fade-up">
+                    <div class="aspect-[4/3] overflow-hidden relative bg-dark-800">
+                        <img src="images/word-to-ppt.png" alt="Word to Presentation Converter" class="project-img w-full h-full object-cover object-top">
+                        <div class="project-overlay absolute inset-0 bg-gradient-to-t from-dark-950/90 via-dark-950/30 to-transparent opacity-0 flex items-end p-6">
+                            <a href="./Simulations_website/templates/index.html" target="_blank" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-all">View Site &rarr;</a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-heading text-xl font-bold">Word &rarr; Presentation</h3>
+                            <span class="text-[10px] font-bold tracking-wider text-brand-400 uppercase bg-brand-600/10 px-2 py-1 rounded-full">Web App</span>
+                        </div>
+                        <p class="text-dark-400 text-sm leading-relaxed">Converts quiz documents and worksheets into professional presentation slides automatically.</p>
+                        <div class="flex gap-2 mt-4 text-xs font-mono text-dark-500">
+                            <span>Python</span><span>&bull;</span><span>Flask</span><span>&bull;</span><span>LibreOffice</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Self-Hosted Cloud -->
+                <div class="project-card bg-gradient-to-br from-dark-950 to-dark-900 border border-white/5 rounded-3xl p-8 flex items-center gap-6 group hover:border-brand-600/20 lg:col-span-2 fade-up">
+                    <div class="flex-1 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-heading text-xl font-bold">Self-Hosted Cloud</h3>
+                            <span class="text-[10px] font-bold tracking-wider text-dark-300 uppercase bg-white/5 px-2 py-1 rounded-full">Homelab</span>
+                        </div>
+                        <p class="text-dark-400 text-sm leading-relaxed">Custom-built Ryzen 9 7900x server running Nextcloud, Tailscale VPN, RustDesk, and various Docker containers for a fully self-hosted infrastructure.</p>
+                        <div class="flex items-center gap-4 mt-4">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-brand-500 shadow-[0_0_8px_rgba(0,230,138,0.6)] animate-pulse"></div>
+                                <span class="font-mono text-brand-500/70 text-xs tracking-wider">NODES ONLINE</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hidden sm:flex items-center justify-center w-20 h-20 rounded-2xl bg-brand-600/10 border border-brand-600/20 shrink-0">
+                        <span class="text-4xl">&#128421;</span>
+                    </div>
+                </div>
+
+                <!-- School Remote Management -->
+                <div class="project-card bg-dark-900 border border-white/5 rounded-3xl p-8 group hover:border-brand-600/20 fade-up">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-heading text-xl font-bold">School Remote Management</h3>
+                    </div>
+                    <p class="text-dark-400 text-sm leading-relaxed">Deployed MeshCentral & Veyon for centralized management and monitoring of 50+ student computers across the school network.</p>
+                    <div class="flex gap-2 mt-4 text-xs font-mono text-dark-500">
+                        <span>MeshCentral</span><span>&bull;</span><span>Veyon</span><span>&bull;</span><span>Networking</span>
+                    </div>
+                </div>
+
             </div>
         </div>
     </section>
 
-    <!-- Services Section -->
-    <section id="services" class="skills-section">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-tag">Our Services</span>
-                <h2>What We Offer</h2>
+    <!-- Booking -->
+    <section id="booking" class="py-24 px-6 relative overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-600/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="max-w-6xl mx-auto relative z-10">
+            <div class="grid lg:grid-cols-5 gap-12 items-center mb-12">
+                <div class="lg:col-span-2 space-y-6 fade-up">
+                    <div class="inline-flex items-center gap-2">
+                        <div class="w-8 h-[2px] bg-brand-500"></div>
+                        <span class="text-brand-400 text-sm font-bold tracking-widest uppercase">Let's Talk</span>
+                    </div>
+                    <h2 class="font-heading text-4xl lg:text-5xl font-bold tracking-tight leading-tight">Book Your<br>Consultation</h2>
+                    <p class="text-dark-300 leading-relaxed">Ready to bring your ideas to life? Schedule a 1:1 consultation to discuss your project and explore solutions.</p>
+                </div>
+                <div class="lg:col-span-3 fade-up">
+                    <div class="bg-dark-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-4 shadow-2xl">
+                        <div style="width:100%;height:600px;overflow:auto;border-radius:16px;" id="my-cal-inline"></div>
+                    </div>
+                </div>
             </div>
-            <div class="skills-grid">
-                <div class="skill-card">
-                    <div class="skill-icon">🌐</div>
-                    <h3>Web Development</h3>
-                    <p>Modern, responsive web applications built with cutting-edge technologies. From landing pages to full-stack platforms.</p>
-                    <div class="skill-tags">
-                        <span>Next.js</span>
-                        <span>React</span>
-                        <span>Full-Stack</span>
-                    </div>
-                </div>
-                <div class="skill-card">
-                    <div class="skill-icon">�</div>
-                    <h3>EdTech Solutions</h3>
-                    <p>Learning platforms, interactive simulations, and educational tools that make knowledge accessible and engaging.</p>
-                    <div class="skill-tags">
-                        <span>LMS</span>
-                        <span>Interactive</span>
-                        <span>Gamification</span>
-                    </div>
-                </div>
-                <div class="skill-card">
-                    <div class="skill-icon">�</div>
-                    <h3>Business Platforms</h3>
-                    <p>Custom solutions for real estate, matrimony, e-commerce, and specialized business needs with SEO optimization.</p>
-                    <div class="skill-tags">
-                        <span>Lead Generation</span>
-                        <span>SEO</span>
-                        <span>Custom CMS</span>
-                    </div>
-                </div>
-                <div class="skill-card">
-                    <div class="skill-icon">🖥️</div>
-                    <h3>IT Infrastructure</h3>
-                    <p>Cloud deployment, server management, and enterprise-grade IT solutions for educational institutions and businesses.</p>
-                    <div class="skill-tags">
-                        <span>Google Cloud</span>
-                        <span>Nginx</span>
-                        <span>Docker</span>
-                    </div>
-                </div>
+        </div>
+        <script type="text/javascript">
+            (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if(typeof namespace === "string"){cal.ns[namespace] = cal.ns[namespace] || api;p(cal.ns[namespace], ar);p(cal, ["initNamespace", namespace]);} else p(cal, ar); return;} p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+            Cal("init", "client-booking", {origin:"https://app.cal.com"});
+            Cal.ns["client-booking"]("inline", {
+                elementOrSelector:"#my-cal-inline",
+                calLink: "learn-novice-kbeiet/client-booking",
+                layout: "month_view"
+            });
+            Cal.ns["client-booking"]("ui", {"theme":"dark", "styles":{"branding":{"brandColor":"#00c06e"}},"hideEventTypeDetails":false,"layout":"month_view"});
+        </script>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="py-24 px-6 bg-dark-900/50">
+        <div class="max-w-3xl mx-auto text-center space-y-8 fade-up">
+            <h2 class="font-heading text-4xl lg:text-6xl font-bold tracking-tight">
+                Ready to build something<br><span class="gradient-text">extraordinary?</span>
+            </h2>
+            <p class="text-dark-300 text-lg max-w-xl mx-auto leading-relaxed">Whether you need a web platform, IT infrastructure, or educational technology solution &mdash; we'd love to hear about your project.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                <a href="mailto:syedamer@learnnovice.com" class="bg-brand-600 hover:bg-brand-700 text-white px-10 py-5 rounded-2xl font-semibold text-lg transition-all hover:shadow-xl hover:shadow-brand-600/25 flex items-center justify-center gap-3">
+                    &#9993; Email Us
+                </a>
+                <a href="https://github.com/Novice130" target="_blank" class="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white px-10 py-5 rounded-2xl font-semibold text-lg transition-all flex items-center justify-center gap-3">
+                    &#128025; GitHub
+                </a>
             </div>
         </div>
     </section>
+</main>
 
-    <!-- Portfolio Section -->
-    <section id="portfolio" class="projects-section">
-        <div class="container">
-            <div class="section-header">
-                <span class="section-tag">Our Work</span>
-                <h2>Featured Projects</h2>
-            </div>
-            <div class="projects-grid">
-                <div class="project-card featured">
-                    <div class="project-badge">Matrimony Platform</div>
-                    <h3>At-Tayyibun - Muslim Matrimony</h3>
-                    <p>Privacy-first matrimony platform for Muslims in the United States. Features AI-generated avatars for identity protection, marriage-focused matching, and secure communication channels. Built for halal connections with modern web technologies.</p>
-                    <div class="project-tech">
-                        <span>Next.js</span>
-                        <span>Authentication</span>
-                        <span>AI Avatars</span>
-                    </div>
-                    <a href="https://attayyibun.com" class="project-link" target="_blank">Visit Site →</a>
-                </div>
-                <div class="project-card featured">
-                    <div class="project-badge">EdTech Platform</div>
-                    <h3>CPTS Companion - HTB Certification Prep</h3>
-                    <p>Comprehensive 30-day study companion for Hack The Box CPTS certification. Features structured learning plans, interactive exercises, spaced-repetition flashcards, mind maps, and progress tracking for cybersecurity professionals.</p>
-                    <div class="project-tech">
-                        <span>Full-Stack App</span>
-                        <span>SQLite</span>
-                        <span>Progress Tracking</span>
-                    </div>
-                    <a href="https://learnnovice.com/cpts-companion/" class="project-link" target="_blank">Try It →</a>
-                </div>
-                <div class="project-card featured">
-                    <div class="project-badge">Interactive Learning</div>
-                    <h3>PhET Simulations Revamp</h3>
-                    <p>Modern redesign of PhET's interactive science and math simulations platform. Features intuitive filtering by grade level and subject, responsive design, and educational games for elementary through high school students.</p>
-                    <div class="project-tech">
-                        <span>Vite</span>
-                        <span>Interactive Simulations</span>
-                        <span>Responsive Design</span>
-                    </div>
-                    <a href="https://learnnovice.com/phet-revamp/" class="project-link" target="_blank">Explore →</a>
-                </div>
-                <div class="project-card featured">
-                    <div class="project-badge">Real Estate</div>
-                    <h3>Build Imara - Home Builders</h3>
-                    <p>Professional website for Hyderabad's trusted home builders with 200+ completed projects. Showcases transparent pricing, comprehensive services from architectural design to construction, quote calculators, and customer testimonials.</p>
-                    <div class="project-tech">
-                        <span>HTML/CSS</span>
-                        <span>SEO Optimized</span>
-                        <span>Lead Generation</span>
-                    </div>
-                    <a href="https://buildimara.com" class="project-link" target="_blank">View Site →</a>
-                </div>
-                <div class="project-card featured">
-                    <div class="project-badge">Web App</div>
-                    <h3>Word → Presentation Converter</h3>
-                    <p>A web application that converts quiz documents and worksheets into professional presentation slides automatically. Built for teachers to save time.</p>
-                    <div class="project-tech">
-                        <span>JavaScript</span>
-                        <span>File Processing</span>
-                        <span>Cloud Hosted</span>
-                    </div>
-                    <a href="https://learnnovice.com/citcd" class="project-link" target="_blank">View Live →</a>
-                </div>
-                <div class="project-card featured">
-                    <div class="project-badge">Website</div>
-                    <h3>CITCD Website Redesign</h3>
-                    <p>Complete redesign of a multi-entity NGO website featuring an Islamic school, cemetery services, and community center. Modern, accessible, and SEO-optimized.</p>
-                    <div class="project-tech">
-                        <span>HTML/CSS</span>
-                        <span>JavaScript</span>
-                        <span>Responsive Design</span>
-                    </div>
-                    <a href="https://learnnovice.com/citcd-website" class="project-link" target="_blank">View Live →</a>
-                </div>
-                <div class="project-card">
-                    <div class="project-badge">IT Infrastructure</div>
-                    <h3>School Remote Management</h3>
-                    <p>Deployed MeshCentral for remote management of 50+ student computers and Veyon for real-time classroom monitoring by teaching staff.</p>
-                    <div class="project-tech">
-                        <span>MeshCentral</span>
-                        <span>Veyon</span>
-                        <span>Linux Server</span>
-                    </div>
-                </div>
-                <div class="project-card">
-                    <div class="project-badge">Homelab</div>
-                    <h3>Self-Hosted Cloud Infrastructure</h3>
-                    <p>Custom-built Ryzen 9 7900x server running Nextcloud, Tailscale VPN, RustDesk, and various Docker containers for personal cloud services.</p>
-                    <div class="project-tech">
-                        <span>Ryzen 9 7900x</span>
-                        <span>Docker</span>
-                        <span>Self-Hosted</span>
-                    </div>
-                </div>
-            </div>
+<!-- Footer -->
+<footer class="border-t border-white/5 py-10 px-6">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-3">
+            <img src="logo.png" alt="LearnNovice" class="h-7 w-7 rounded-lg opacity-60">
+            <span class="font-heading text-lg font-bold tracking-tight text-dark-400">Learn<span class="text-brand-600">Novice</span></span>
         </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section id="contact" class="contact-section">
-        <div class="container">
-            <div class="contact-content">
-                <span class="section-tag">Let's Connect</span>
-                <h2>Ready to Build Something Amazing?</h2>
-                <p>Whether you need a web platform, IT infrastructure, or educational technology solution — we'd love to hear about your project.</p>
-                <div class="contact-buttons">
-                    <a href="mailto:syedamer@learnnovice.com" class="btn btn-primary btn-large">📧 Email Us</a>
-                    <a href="https://github.com/Novice130" class="btn btn-secondary btn-large" target="_blank">🐙 GitHub</a>
-                </div>
-            </div>
+        <p class="text-dark-500 text-sm">&copy; 2025 LearnNovice. Built with passion.</p>
+        <div class="flex gap-6">
+            <a href="#about" class="text-dark-500 hover:text-dark-300 text-sm font-medium transition-colors">About</a>
+            <a href="#services" class="text-dark-500 hover:text-dark-300 text-sm font-medium transition-colors">Services</a>
+            <a href="#portfolio" class="text-dark-500 hover:text-dark-300 text-sm font-medium transition-colors">Our Work</a>
         </div>
-    </section>
+    </div>
+</footer>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <a href="#" class="logo"><img src="logo.png" alt="LearnNovice Logo" class="logo-img">Learn! <span>Novice</span></a>
-                <p>© 2025 LearnNovice. Built with passion. Hosted on Google Cloud.</p>
-            </div>
-        </div>
-    </footer>
+<script>
+// Mobile menu toggle
+document.getElementById('menuBtn')?.addEventListener('click', () => {
+    const menu = document.getElementById('mobileMenu');
+    menu.classList.toggle('open');
+    document.getElementById('menuBtn').innerHTML = menu.classList.contains('open') ? '&#10005;' : '&#9776;';
+});
+document.querySelectorAll('#mobileMenu a').forEach(link => {
+    link.addEventListener('click', () => {
+        document.getElementById('mobileMenu').classList.remove('open');
+        document.getElementById('menuBtn').innerHTML = '&#9776;';
+    });
+});
 
-    <script src="script.js"></script>
+// Scroll animations
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+});
+</script>
 </body>
 </html>

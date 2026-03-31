@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Word → Presentation Converter</title>
+    <style>
+      body {
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial;
+        max-width: 800px;
+        margin: 0 auto 40px;
+        /* add top padding to avoid content being hidden under fixed header */
+        padding: 84px 16px 0;
+        background: linear-gradient(180deg, #f7fbff, #ffffff);
+        color: #0f172a;
+      }
+      .card {
+        border: 1px solid #e6eefc;
+        padding: 28px;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 6px 18px rgba(14, 30, 60, 0.06);
+      }
+      .drop-area {
+        border: 2px dashed #bbb;
+        border-radius: 8px;
+        padding: 36px;
+        /* reduced height by ~60% total (from 220px to 108px) */
+        min-height: 108px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        cursor: pointer;
+        margin: 12px 0;
+        background: #fafafa;
+        transition: border-color 0.2s, background 0.2s;
+      }
+      .drop-area.highlight {
+        border-color: #3b82f6;
+        background: #f0f8ff;
+      }
+      .btn {
+        appearance: none;
+        border: 0;
+        padding: 12px 24px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #2563eb, #4f46e5);
+        color: #fff;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+      }
+      .btn:active:not(:disabled) {
+        transform: translateY(0);
+      }
+      .btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+      input[type="file"] {
+        display: none;
+      }
+      select,
+      input[type="number"] {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        background: #fff;
+      }
+      select:focus,
+      input[type="number"]:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      }
+      .options-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin: 16px 0;
+      }
+      .option-group label {
+        display: block;
+        font-weight: 600;
+        font-size: 13px;
+        color: #475569;
+        margin-bottom: 6px;
+      }
+      .info-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 16px 0;
+      }
+      .info-box h3 {
+        margin: 0 0 10px;
+        font-size: 15px;
+        color: #1e293b;
+      }
+      .info-box ul {
+        margin: 0;
+        padding-left: 20px;
+        font-size: 14px;
+        color: #475569;
+        line-height: 1.7;
+      }
+      .info-box li {
+        margin-bottom: 4px;
+      }
+      /* Header Navigation */
+      header a {
+        transition: opacity 0.2s ease;
+      }
+      header a:hover:not([style*="background"]) {
+        opacity: 0.8;
+      }
+      header a[style*="background"]:hover {
+        opacity: 0.95;
+        transform: translateY(-1px);
+      }
+
+      /* Responsive header: show hamburger on small screens */
+      .nav-toggle {
+        display: none;
+        background: transparent;
+        border: 0;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 8px;
+      }
+
+      @media (max-width: 720px) {
+        header > div {
+          padding: 0 12px !important;
+        }
+        header div[style*="display: flex;"] {
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        header img {
+          height: 36px;
+        }
+        header div[style*="font-weight: 700"] {
+          font-size: 12px;
+        }
+        header div[style*="font-size: 11px"] {
+          font-size: 9px;
+        }
+        nav {
+          display: none;
+          position: absolute;
+          right: 12px;
+          top: 56px;
+          background: white;
+          color: #0f172a;
+          border-radius: 8px;
+          padding: 12px;
+          box-shadow: 0 6px 20px rgba(2, 6, 23, 0.08);
+          z-index: 1001;
+        }
+        nav a {
+          display: block;
+          color: #0f172a !important;
+          padding: 8px 12px;
+          text-decoration: none;
+        }
+        nav a[style*="background"] {
+          background: #ff6b35 !important;
+          color: white !important;
+          border-radius: 6px;
+          margin-top: 4px;
+        }
+        .nav-toggle {
+          display: inline-flex;
+          align-items: center;
+          margin-left: auto;
+        }
+        header.open nav {
+          display: flex;
+          flex-direction: column;
+          min-width: 180px;
+        }
+      }
+      /* Spinner animation */
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      /* Progress bar */
+      .progress-container {
+        display: none;
+        margin-top: 12px;
+      }
+      .progress-bar {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+      .progress-text {
+        font-size: 13px;
+        color: #64748b;
+        margin-top: 6px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation Header inspired by CITCD -->
+    <header
+      style="
+        background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
+        padding: 16px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+      "
+    >
+      <!-- absolute branding (logo + text) on the far left with comfortable spacing -->
+      <div
+        style="
+          position: absolute;
+          left: 16px;
+          top: 50%;
+          transform: translateY(-50%);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          color: white;
+        "
+      >
+        <img
+          src="static/images/logo.png"
+          alt="CITCD"
+          style="height: 50px; width: auto; display: block"
+        />
+        <div style="line-height: 1">
+          <div style="font-weight: 700; font-size: 14px">CITCD</div>
+          <div style="font-size: 11px; opacity: 0.9">Quiz Converter</div>
+        </div>
+      </div>
+      <div
+        style="
+          max-width: 1200px;
+          margin: 0 auto;
+          /* remove left padding so logo moves further left */
+          padding: 0 20px 0 0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <!-- spacer to reserve space for the absolute branding on the left -->
+        <div style="width: 200px" aria-hidden="true"></div>
+
+        <!-- Navigation Menu -->
+        <button
+          class="nav-toggle"
+          id="navToggle"
+          aria-label="Toggle navigation"
+        >
+          ☰
+        </button>
+        <nav style="display: flex; gap: 24px; align-items: center">
+          <a
+            href="#home"
+            style="
+              color: white;
+              text-decoration: none;
+              font-size: 14px;
+              font-weight: 500;
+              transition: opacity 0.2s;
+            "
+            >Home</a
+          >
+          <a
+            href="https://www.citcd.org/about"
+            target="_blank"
+            style="
+              color: white;
+              text-decoration: none;
+              font-size: 14px;
+              font-weight: 500;
+              transition: opacity 0.2s;
+            "
+            >About CITCD</a
+          >
+          <a
+            href="https://www.citcd.org/abraar-academy"
+            target="_blank"
+            style="
+              color: white;
+              text-decoration: none;
+              font-size: 14px;
+              font-weight: 500;
+              transition: opacity 0.2s;
+            "
+            >Programs</a
+          >
+          <a
+            href="https://www.citcd.org/donate"
+            target="_blank"
+            style="
+              color: white;
+              background: #ff6b35;
+              padding: 8px 16px;
+              border-radius: 6px;
+              text-decoration: none;
+              font-size: 14px;
+              font-weight: 600;
+            "
+            >Donate</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="card" style="margin-top: 40px">
+      <!-- Hero Banner -->
+      <div
+        class="hero"
+        style="
+          background-image: url('static/images/hero.jpg');
+          background-size: cover;
+          background-position: center;
+          border-radius: 8px;
+          overflow: hidden;
+          margin-bottom: 20px;
+        "
+      >
+        <div
+          style="
+            background: linear-gradient(
+              180deg,
+              rgba(0, 0, 0, 0.4),
+              rgba(0, 0, 0, 0.15)
+            );
+            padding: 40px 36px;
+            color: #fff;
+          "
+        >
+          <h1 style="margin: 0; font-size: 34px; letter-spacing: 0.2px">
+            Word → Presentation
+          </h1>
+          <p style="margin: 8px 0 0; opacity: 0.95; font-size: 16px">
+            Convert quizzes and worksheets into professional presentation slides
+          </p>
+        </div>
+      </div>
+
+      <!-- Upload Form -->
+      <form
+        id="uploadForm"
+        action="convert"
+        method="post"
+        enctype="multipart/form-data"
+      >
+        <label for="file" style="font-weight: 600; font-size: 14px"
+          >Select your file</label
+        >
+        <div id="dropArea" class="drop-area">
+          <p id="dropText" style="margin: 0; color: #64748b">
+            📄 Drag & drop your .docx, .doc, or .pdf file here<br />
+            <span style="font-size: 13px; opacity: 0.8"
+              >or click to browse</span
+            >
+          </p>
+          <input
+            multiple
+            type="file"
+            name="file"
+            id="file"
+            accept=".docx,.doc,.pdf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            required
+          />
+          <div
+            id="fileInfo"
+            style="
+              margin-top: 10px;
+              color: #065f46;
+              font-weight: 600;
+              display: none;
+            "
+          ></div>
+        </div>
+
+        <!-- Styling Options -->
+        <div class="options-grid">
+          <div class="option-group">
+            <label for="fontFamily">Font Style</label>
+            <select id="fontFamily" name="fontFamily" style="width: 100%">
+              <option value="Calibri">Calibri (Default)</option>
+              <option value="Arial">Arial</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Tahoma">Tahoma</option>
+              <option value="Trebuchet MS">Trebuchet MS</option>
+              <option value="Palatino Linotype">Palatino Linotype</option>
+              <option value="Lucida Calligraphy">Lucida Calligraphy</option>
+              <option value="Brush Script MT">Brush Script MT</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label for="fontSize">Font Size (pt)</label>
+            <select id="fontSize" name="fontSize" style="width: 100%">
+              <option value="24">24 pt (Small)</option>
+              <option value="28">28 pt</option>
+              <option value="32">32 pt</option>
+              <option value="36" selected>36 pt (Default)</option>
+              <option value="40">40 pt</option>
+              <option value="44">44 pt (Large)</option>
+              <option value="48">48 pt</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label for="lineSpacing">Line Spacing</label>
+            <select id="lineSpacing" name="lineSpacing" style="width: 100%">
+              <option value="1.0">1.0 (Compact)</option>
+              <option value="1.15">1.15</option>
+              <option value="1.25" selected>1.25 (Default)</option>
+              <option value="1.5">1.5</option>
+              <option value="1.75">1.75</option>
+              <option value="2.0">2.0 (Double)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Preview Area -->
+        <div
+          id="preview"
+          class="preview"
+          style="
+            display: none;
+            margin: 16px 0;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fafafa;
+          "
+        >
+          <div
+            style="
+              font-weight: 600;
+              font-size: 13px;
+              margin-bottom: 10px;
+              color: #475569;
+            "
+          >
+            📑 File Preview
+          </div>
+          <div
+            id="previewGrid"
+            style="display: flex; flex-wrap: wrap; gap: 12px"
+          ></div>
+        </div>
+
+        <!-- Convert Button -->
+        <button id="convertBtn" type="submit" class="btn">
+          <span id="btnText">Convert to PPTX</span>
+          <div id="btnSpinner" class="spinner" style="display: none"></div>
+        </button>
+
+        <!-- Progress Bar -->
+        <div id="progressContainer" class="progress-container">
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+          <div id="progressText" class="progress-text">Preparing...</div>
+        </div>
+      </form>
+
+      <!-- Info Box with Requirements -->
+      <div class="info-box">
+        <h3>📋 How It Works</h3>
+        <ul>
+          <li>
+            <strong>Upload</strong> a Word (.docx, .doc) or PDF file containing
+            questions
+          </li>
+          <li>
+            <strong>Each question</strong> is automatically placed on its own
+            slide
+          </li>
+          <li>
+            <strong>Title text</strong> (if present) goes on a separate title
+            slide
+          </li>
+          <li>
+            <strong>MCQ options</strong> are detected and formatted (works with
+            inline or multi-line options)
+          </li>
+        </ul>
+        <h3 style="margin-top: 14px">✅ For Best Results</h3>
+        <ul>
+          <li>
+            Number your questions (e.g., "1.", "Q1)", "(1)") for accurate
+            splitting
+          </li>
+          <li>Use standard option labels: A), B), C), D) or a., b., c., d.</li>
+          <li>Separate questions with blank lines if not numbered</li>
+          <li>Keep the title short (≤30 words) at the top of the document</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // small helper to toggle responsive nav on mobile
+      (function () {
+        const toggle = document.getElementById("navToggle");
+        const header = document.querySelector("header");
+        if (!toggle || !header) return;
+        toggle.addEventListener("click", () => {
+          header.classList.toggle("open");
+        });
+      })();
+
+      const dropArea = document.getElementById("dropArea");
+      const fileInput = document.getElementById("file");
+      const previewBox = document.getElementById("preview");
+      const dropText = document.getElementById("dropText");
+      const convertBtn = document.getElementById("convertBtn");
+      const btnText = document.getElementById("btnText");
+      const btnSpinner = document.getElementById("btnSpinner");
+      const progressContainer = document.getElementById("progressContainer");
+      const progressFill = document.getElementById("progressFill");
+      const progressText = document.getElementById("progressText");
+
+      // Drag and drop handlers
+      ["dragenter", "dragover", "dragleave", "drop"].forEach((evt) =>
+        dropArea.addEventListener(evt, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        })
+      );
+      ["dragenter", "dragover"].forEach((evt) =>
+        dropArea.addEventListener(evt, () =>
+          dropArea.classList.add("highlight")
+        )
+      );
+      ["dragleave", "drop"].forEach((evt) =>
+        dropArea.addEventListener(evt, () =>
+          dropArea.classList.remove("highlight")
+        )
+      );
+      dropArea.addEventListener("drop", (e) => {
+        if (e.dataTransfer.files.length) {
+          fileInput.files = e.dataTransfer.files;
+          handleFileSelected();
+        }
+      });
+      dropArea.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", handleFileSelected);
+
+      async function handleFileSelected() {
+        const files = Array.from(fileInput.files || []);
+        const info = document.getElementById("fileInfo");
+        const grid = document.getElementById("previewGrid");
+        if (!files.length) return;
+        info.style.display = "block";
+        info.textContent = `✓ Selected: ${files.length} file(s)`;
+        previewBox.style.display = "block";
+        grid.innerHTML =
+          '<div style="width:100%; color: #64748b; font-size: 13px">Generating previews...</div>';
+
+        grid.innerHTML = "";
+        for (const f of files) {
+          const card = document.createElement("div");
+          card.style.cssText =
+            "width:240px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;background:#fff;box-shadow:0 4px 12px rgba(2,6,23,0.04)";
+          const header = document.createElement("div");
+          header.style.cssText =
+            "padding:10px;font-size:13px;font-weight:600;background:#f8fafc;border-bottom:1px solid #e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
+          header.textContent = f.name;
+          const body = document.createElement("div");
+          body.style.cssText =
+            "height:160px;display:flex;align-items:center;justify-content:center;background:#fff";
+          body.innerHTML =
+            '<em style="color:#94a3b8;font-size:13px">Loading...</em>';
+          card.appendChild(header);
+          card.appendChild(body);
+          grid.appendChild(card);
+
+          const fd = new FormData();
+          fd.append("file", f);
+          try {
+            // use BASE so requests work when app is mounted at a subpath (e.g. /citcd)
+            const res = await fetch((BASE || "") + "/preview", {
+              method: "POST",
+              body: fd,
+            });
+            const j = await res.json();
+            if (j.type === "pdf") {
+              // build full URL respecting BASE if preview returned an absolute path
+              let previewUrl = j.url || "";
+              if (previewUrl.startsWith("/"))
+                previewUrl = (BASE || "") + previewUrl;
+              else if (!/^https?:\/\//i.test(previewUrl))
+                previewUrl = (BASE ? BASE + "/" : "/") + previewUrl;
+              body.innerHTML = `<iframe src="${previewUrl}" style="width:100%;height:100%;border:0"></iframe>`;
+            } else if (j.type === "docx") {
+              body.innerHTML = `<pre style="white-space:pre-wrap;padding:10px;margin:0;font-family:inherit;font-size:11px;color:#334155;overflow:auto;max-height:160px">${escapeHtml(
+                j.text || ""
+              )}</pre>`;
+            } else if (j.error) {
+              body.innerHTML = `<div style="color:#dc2626;padding:10px;font-size:13px">⚠ Preview error</div>`;
+            } else {
+              body.innerHTML =
+                '<div style="padding:10px;color:#94a3b8;font-size:13px">No preview available</div>';
+            }
+          } catch (err) {
+            body.innerHTML = `<div style="color:#dc2626;padding:10px;font-size:13px">⚠ Preview failed</div>`;
+          }
+        }
+        dropText.style.display = "none";
+      }
+
+      // BASE: empty string if at root, or the current path without trailing slash (e.g. '/citcd')
+      const BASE = (function () {
+        const p = window.location.pathname || "/";
+        if (p === "/") return "";
+        return p.replace(/\/$/, "");
+      })();
+
+      // Form submission with progress animation
+      const form = document.getElementById("uploadForm");
+      form.action = (BASE || "") + "/convert";
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const files = fileInput.files;
+        if (!files || files.length === 0) return;
+
+        // Get styling options
+        const fontFamily = document.getElementById("fontFamily").value;
+        const fontSize = document.getElementById("fontSize").value;
+        const lineSpacing = document.getElementById("lineSpacing").value;
+
+        const fd = new FormData();
+        fd.append("file", files[0]);
+        fd.append("fontFamily", fontFamily);
+        fd.append("fontSize", fontSize);
+        fd.append("lineSpacing", lineSpacing);
+
+        // Show loading state
+        convertBtn.disabled = true;
+        btnText.textContent = "Converting...";
+        btnSpinner.style.display = "block";
+        progressContainer.style.display = "block";
+        progressFill.style.width = "0%";
+        progressText.textContent = "Reading file...";
+
+        // Simulate progress stages
+        const progressStages = [
+          { pct: 15, text: "Parsing document..." },
+          { pct: 35, text: "Detecting questions..." },
+          { pct: 55, text: "Creating slides..." },
+          { pct: 75, text: "Applying formatting..." },
+          { pct: 90, text: "Finalizing presentation..." },
+        ];
+        let stageIndex = 0;
+        const progressInterval = setInterval(() => {
+          if (stageIndex < progressStages.length) {
+            progressFill.style.width = progressStages[stageIndex].pct + "%";
+            progressText.textContent = progressStages[stageIndex].text;
+            stageIndex++;
+          }
+        }, 400);
+
+        try {
+          const res = await fetch((BASE || "") + "/convert", {
+            method: "POST",
+            body: fd,
+          });
+          clearInterval(progressInterval);
+
+          if (!res.ok) {
+            const txt = await res.text();
+            progressFill.style.width = "100%";
+            progressFill.style.background = "#ef4444";
+            progressText.textContent = "Error: " + txt;
+            resetButton();
+            return;
+          }
+
+          progressFill.style.width = "100%";
+          progressText.textContent = "Download starting...";
+
+          const blob = await res.blob();
+          const cd = res.headers.get("content-disposition") || "";
+          let filename = "converted.pptx";
+          const m = cd.match(/filename\*=UTF-8''(.+)|filename="?([^";]+)"?/);
+          if (m) filename = decodeURIComponent(m[1] || m[2] || filename);
+
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+
+          progressText.textContent = "✅ Download complete!";
+          setTimeout(() => {
+            progressContainer.style.display = "none";
+            progressFill.style.background =
+              "linear-gradient(90deg, #3b82f6, #8b5cf6)";
+          }, 2000);
+        } catch (err) {
+          clearInterval(progressInterval);
+          progressFill.style.width = "100%";
+          progressFill.style.background = "#ef4444";
+          progressText.textContent = "Conversion failed. Please try again.";
+        }
+        resetButton();
+      });
+
+      function resetButton() {
+        convertBtn.disabled = false;
+        btnText.textContent = "Convert to PPTX";
+        btnSpinner.style.display = "none";
+      }
+
+      function escapeHtml(s) {
+        return (s || "").replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])
+        );
+      }
+    </script>
+  </body>
+</html>

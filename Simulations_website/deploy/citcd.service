@@ -1,0 +1,16 @@
+[Unit]
+Description=Gunicorn instance to serve citcd Flask app
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/citcd
+Environment="PATH=/var/www/citcd/.venv/bin"
+ExecStart=/var/www/citcd/.venv/bin/gunicorn --workers 3 --bind unix:/run/citcd.sock app:app
+
+[Install]
+WantedBy=multi-user.target
+
+# NOTE: Copy this file to /etc/systemd/system/citcd.service and adjust
+# `User`, `WorkingDirectory`, and `Environment` paths to match your server.

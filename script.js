@@ -52,7 +52,7 @@ const animateOnScroll = new IntersectionObserver((entries) => {
 }, observerOptions);
 
 // Apply scroll animation to elements
-document.querySelectorAll('.skill-card, .project-card, .stat-item, .about-content').forEach(el => {
+document.querySelectorAll('.skill-card, .project-card, .stat-item, .about-content, .booking-wrapper').forEach(el => {
     el.style.opacity = '0';
     el.style.transform = 'translateY(30px)';
     el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
