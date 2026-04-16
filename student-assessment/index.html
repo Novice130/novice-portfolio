@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Learning Map</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --card: #ffffff;
+    --ink: #2d3a3a;
+    --soft: #6b7a7a;
+    --accent: #4a8a7b;
+    --accent-soft: #e8f1ee;
+    --warm: #d4a574;
+    --warm-soft: #f5ead9;
+    --border: #e8e4dc;
+    --shadow: 0 2px 12px rgba(45, 58, 58, 0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 20px;
+    line-height: 1.5;
+  }
+
+  .app {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .screen {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 40px 32px;
+    box-shadow: var(--shadow);
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .question-number {
+    font-size: 13px;
+    color: var(--soft);
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    font-family: 'Helvetica Neue', sans-serif;
+  }
+
+  .question {
+    font-size: 26px;
+    font-weight: 400;
+    margin-bottom: 32px;
+    line-height: 1.3;
+  }
+
+  .options {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .option {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    font-size: 18px;
+    font-family: inherit;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s ease;
+    min-height: 64px;
+  }
+
+  .option:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .option.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .option-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .arabic-letter {
+    font-size: 42px;
+    font-family: 'Amiri', 'Scheherazade New', 'Noto Naskh Arabic', serif;
+    flex-shrink: 0;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 24px;
+  }
+
+  .btn {
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #3d7568;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--soft);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover {
+    color: var(--ink);
+    border-color: var(--soft);
+  }
+
+  .welcome {
+    text-align: center;
+    padding: 60px 32px;
+  }
+
+  .welcome h1 {
+    font-size: 36px;
+    margin-bottom: 16px;
+    font-weight: 400;
+  }
+
+  .welcome p {
+    font-size: 18px;
+    color: var(--soft);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  .welcome .salaam {
+    font-family: 'Amiri', serif;
+    font-size: 32px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .welcome .btn-primary {
+    font-size: 18px;
+    padding: 16px 40px;
+  }
+
+  .section-label {
+    display: inline-block;
+    background: var(--warm-soft);
+    color: #8a6233;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+    font-family: 'Helvetica Neue', sans-serif;
+    text-transform: uppercase;
+  }
+
+  .results-screen {
+    padding: 32px;
+  }
+
+  .results-screen h2 {
+    font-size: 28px;
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+
+  .results-screen .subtitle {
+    color: var(--soft);
+    margin-bottom: 24px;
+  }
+
+  .results-output {
+    background: #f5f2ec;
+    border-radius: 12px;
+    padding: 20px;
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    color: #3a4545;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .small-text {
+    font-size: 14px;
+    color: var(--soft);
+    margin-top: 16px;
+    text-align: center;
+  }
+
+  @media (max-width: 500px) {
+    .screen { padding: 28px 20px; }
+    .question { font-size: 22px; }
+    .option { font-size: 16px; padding: 16px; }
+    .welcome h1 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div id="screen"></div>
+  </div>
+
+<script>
+const questions = [
+  // WELCOME
+  { type: 'welcome' },
+
+  // === SECTION: ARABIC LETTERS ===
+  {
+    section: 'Arabic Letters',
+    q: 'Do you know this letter?',
+    display: 'ا',
+    options: [
+      { label: 'Yes, I know it', value: 'yes' },
+      { label: 'Sometimes', value: 'sometimes' },
+      { label: 'Not yet', value: 'no' }
+    ],
+    key: 'letter_alif'
+  },
+  {
+    section: 'Arabic Letters',
+    q: 'Do you know this letter?',
+    display: 'ب',
+    options: [
+      { label: 'Yes, I know it', value: 'yes' },
+      { label: 'Sometimes', value: 'sometimes' },
+      { label: 'Not yet', value: 'no' }
+    ],
+    key: 'letter_ba'
+  },
+  {
+    section: 'Arabic Letters',
+    q: 'Do you know this letter?',
+    display: 'ت',
+    options: [
+      { label: 'Yes, I know it', value: 'yes' },
+      { label: 'Sometimes', value: 'sometimes' },
+      { label: 'Not yet', value: 'no' }
+    ],
+    key: 'letter_ta'
+  },
+  {
+    section: 'Arabic Letters',
+    q: 'Do you know this letter?',
+    display: 'ث',
+    options: [
+      { label: 'Yes, I know it', value: 'yes' },
+      { label: 'Sometimes', value: 'sometimes' },
+      { label: 'Not yet', value: 'no' }
+    ],
+    key: 'letter_tha'
+  },
+  {
+    section: 'Arabic Letters',
+    q: 'Do you know this letter?',
+    display: 'ج',
+    options: [
+      { label: 'Yes, I know it', value: 'yes' },
+      { label: 'Sometimes', value: 'sometimes' },
+      { label: 'Not yet', value: 'no' }
+    ],
+    key: 'letter_jeem'
+  },
+  {
+    section: 'Arabic Letters',
+    q: 'Do you know this letter?',
+    display: 'ح',
+    options: [
+      { label: 'Yes, I know it', value: 'yes' },
+      { label: 'Sometimes', value: 'sometimes' },
+      { label: 'Not yet', value: 'no' }
+    ],
+    key: 'letter_ha'
+  },
+  {
+    section: 'Arabic Letters',
+    q: 'Do you know this letter?',
+    display: 'خ',
+    options: [
+      { label: 'Yes, I know it', value: 'yes' },
+      { label: 'Sometimes', value: 'sometimes' },
+      { label: 'Not yet', value: 'no' }
+    ],
+    key: 'letter_kha'
+  },
+  {
+    section: 'Arabic Letters',
+    q: 'How do you feel about Arabic letters?',
+    options: [
+      { icon: '😊', label: 'I like them', value: 'like' },
+      { icon: '😐', label: 'They are okay', value: 'neutral' },
+      { icon: '😕', label: 'They are hard', value: 'hard' },
+      { icon: '😢', label: 'I don\'t like them', value: 'dislike' }
+    ],
+    key: 'feeling_letters'
+  },
+  {
+    section: 'Arabic Letters',
+    q: 'When you see an Arabic letter, what helps you most?',
+    options: [
+      { icon: '👀', label: 'Looking at the shape', value: 'visual' },
+      { icon: '👂', label: 'Hearing the sound', value: 'auditory' },
+      { icon: '✍️', label: 'Writing it with my hand', value: 'kinesthetic' },
+      { icon: '🎨', label: 'Color or pictures', value: 'color' }
+    ],
+    key: 'helps_most'
+  },
+
+  // === SECTION: MATH ===
+  {
+    section: 'Math',
+    q: 'How do you feel about math?',
+    options: [
+      { icon: '😊', label: 'I love math', value: 'love' },
+      { icon: '🙂', label: 'I like math', value: 'like' },
+      { icon: '😐', label: 'Math is okay', value: 'neutral' },
+      { icon: '😕', label: 'Math is hard', value: 'hard' }
+    ],
+    key: 'feeling_math'
+  },
+  {
+    section: 'Math',
+    q: 'What do you like most in math?',
+    options: [
+      { icon: '🔢', label: 'Numbers and counting', value: 'numbers' },
+      { icon: '➕', label: 'Adding and subtracting', value: 'operations' },
+      { icon: '📐', label: 'Shapes and patterns', value: 'shapes' },
+      { icon: '🧩', label: 'Solving puzzles', value: 'puzzles' }
+    ],
+    key: 'math_likes'
+  },
+  {
+    section: 'Math',
+    q: 'Can you count from 1 to 20?',
+    options: [
+      { label: 'Yes, easily', value: 'easy' },
+      { label: 'Yes, but slowly', value: 'slow' },
+      { label: 'Up to a certain number', value: 'partial' },
+      { label: 'I need help', value: 'help' }
+    ],
+    key: 'counting'
+  },
+
+  // === SECTION: SENSORY ===
+  {
+    section: 'How I Feel',
+    q: 'How do you feel about loud sounds?',
+    options: [
+      { icon: '😌', label: 'They are okay', value: 'okay' },
+      { icon: '🫢', label: 'They bother me sometimes', value: 'sometimes' },
+      { icon: '🙉', label: 'I don\'t like them', value: 'dislike' }
+    ],
+    key: 'sensory_sound'
+  },
+  {
+    section: 'How I Feel',
+    q: 'How do you feel about bright lights?',
+    options: [
+      { icon: '😌', label: 'They are okay', value: 'okay' },
+      { icon: '😎', label: 'They bother me sometimes', value: 'sometimes' },
+      { icon: '🙈', label: 'I don\'t like them', value: 'dislike' }
+    ],
+    key: 'sensory_light'
+  },
+  {
+    section: 'How I Feel',
+    q: 'Do you like when things stay the same every day?',
+    options: [
+      { icon: '✅', label: 'Yes, I like routine', value: 'yes' },
+      { icon: '🤷', label: 'Sometimes', value: 'sometimes' },
+      { icon: '🔄', label: 'I like changes', value: 'no' }
+    ],
+    key: 'routine'
+  },
+  {
+    section: 'How I Feel',
+    q: 'When something is too much, what do you do?',
+    options: [
+      { icon: '🤫', label: 'I go quiet', value: 'quiet' },
+      { icon: '🙉', label: 'I cover my ears', value: 'cover_ears' },
+      { icon: '🚶', label: 'I want to walk away', value: 'leave' },
+      { icon: '🤔', label: 'Something else', value: 'other' }
+    ],
+    key: 'overwhelm_response'
+  },
+
+  // === SECTION: LEARNING STYLE ===
+  {
+    section: 'How I Learn',
+    q: 'I learn best when...',
+    options: [
+      { icon: '📖', label: 'I see pictures', value: 'visual' },
+      { icon: '👂', label: 'I hear the teacher', value: 'auditory' },
+      { icon: '🤲', label: 'I touch and move', value: 'kinesthetic' },
+      { icon: '🎥', label: 'I watch videos', value: 'video' }
+    ],
+    key: 'learning_style'
+  },
+  {
+    section: 'How I Learn',
+    q: 'Which is easier for you?',
+    options: [
+      { icon: '🔢', label: 'Remembering numbers', value: 'numbers' },
+      { icon: '🔤', label: 'Remembering letters', value: 'letters' },
+      { icon: '🎨', label: 'Remembering colors', value: 'colors' },
+      { icon: '🎵', label: 'Remembering songs', value: 'songs' }
+    ],
+    key: 'memory_strength'
+  },
+  {
+    section: 'How I Learn',
+    q: 'How long can you focus on one thing?',
+    options: [
+      { label: 'A few minutes', value: 'few_min' },
+      { label: 'About 10 minutes', value: '10_min' },
+      { label: 'About 20 minutes', value: '20_min' },
+      { label: 'A long time if I like it', value: 'long_if_like' }
+    ],
+    key: 'focus_duration'
+  },
+
+  // === SECTION: INTERESTS ===
+  {
+    section: 'What I Like',
+    q: 'What do you enjoy doing the most?',
+    options: [
+      { icon: '🔢', label: 'Numbers and math', value: 'math' },
+      { icon: '📱', label: 'Phones and tablets', value: 'tech' },
+      { icon: '🚗', label: 'Cars and vehicles', value: 'vehicles' },
+      { icon: '🎨', label: 'Drawing and colors', value: 'art' }
+    ],
+    key: 'interest_1'
+  },
+  {
+    section: 'What I Like',
+    q: 'Pick another thing you enjoy:',
+    options: [
+      { icon: '🧩', label: 'Puzzles and games', value: 'puzzles' },
+      { icon: '🎵', label: 'Music and sounds', value: 'music' },
+      { icon: '🐾', label: 'Animals', value: 'animals' },
+      { icon: '📺', label: 'Watching videos', value: 'videos' }
+    ],
+    key: 'interest_2'
+  },
+  {
+    section: 'What I Like',
+    q: 'Do you like reciting or listening to Quran?',
+    options: [
+      { icon: '📖', label: 'Yes, I like it', value: 'yes' },
+      { icon: '👂', label: 'I like listening', value: 'listen' },
+      { icon: '😐', label: 'Sometimes', value: 'sometimes' },
+      { icon: '🤷', label: 'Not really', value: 'no' }
+    ],
+    key: 'quran_feeling'
+  },
+
+  // DONE
+  { type: 'done' }
+];
+
+const answers = {};
+let current = 0;
+
+const screen = document.getElementById('screen');
+const progressFill = document.getElementById('progressFill');
+
+function render() {
+  const item = questions[current];
+  const pct = (current / (questions.length - 1)) * 100;
+  progressFill.style.width = pct + '%';
+
+  if (item.type === 'welcome') {
+    renderWelcome();
+  } else if (item.type === 'done') {
+    renderDone();
+  } else {
+    renderQuestion(item);
+  }
+}
+
+function renderWelcome() {
+  screen.innerHTML = `
+    <div class="welcome">
+      <div class="salaam">السلام عليكم</div>
+      <h1>My Learning Map</h1>
+      <p>This helps your teacher understand how you learn best.<br>There are no wrong answers — just tap what feels true for you.</p>
+      <button class="btn btn-primary" onclick="next()">Let's Begin</button>
+    </div>
+  `;
+}
+
+function renderQuestion(item) {
+  const isArabic = item.display && /[\u0600-\u06FF]/.test(item.display);
+  const optionsHTML = item.options.map((opt, i) => {
+    const selected = answers[item.key] === opt.value ? 'selected' : '';
+    let iconHTML = '';
+    if (isArabic && i === 0) {
+      // show arabic letter as the visual
+    }
+    if (opt.icon) {
+      iconHTML = `<span class="option-icon">${opt.icon}</span>`;
+    }
+    return `
+      <button class="option ${selected}" onclick="select('${item.key}', '${opt.value}')">
+        ${iconHTML}
+        <span>${opt.label}</span>
+      </button>
+    `;
+  }).join('');
+
+  const letterDisplay = isArabic
+    ? `<div style="font-family: 'Amiri','Scheherazade New',serif; font-size: 110px; text-align: center; color: var(--accent); margin: 16px 0 32px; line-height: 1;">${item.display}</div>`
+    : '';
+
+  screen.innerHTML = `
+    <div class="section-label">${item.section}</div>
+    <div class="question-number">Question ${current} of ${questions.length - 2}</div>
+    <div class="question">${item.q}</div>
+    ${letterDisplay}
+    <div class="options">${optionsHTML}</div>
+    <div class="nav">
+      <button class="btn btn-ghost" onclick="prev()" ${current <= 1 ? 'style="visibility:hidden"' : ''}>← Back</button>
+      <button class="btn btn-ghost" onclick="skip('${item.key}')">Skip</button>
+      <button class="btn btn-primary" onclick="next()" ${!answers[item.key] ? 'disabled' : ''}>Next →</button>
+    </div>
+  `;
+}
+
+function renderDone() {
+  const output = formatResults();
+  screen.innerHTML = `
+    <div class="results-screen">
+      <h2>✨ All Done!</h2>
+      <p class="subtitle">Great job. Here are your answers — share them with your teacher.</p>
+      <div class="results-output" id="results">${output}</div>
+      <div class="action-row">
+        <button class="btn btn-primary" onclick="copyResults()">📋 Copy to Clipboard</button>
+        <button class="btn btn-ghost" onclick="downloadResults()">💾 Download as Text</button>
+      </div>
+      <p class="small-text">Paste this into your chat with Claude so your teacher can plan your lessons.</p>
+    </div>
+  `;
+  progressFill.style.width = '100%';
+}
+
+function select(key, value) {
+  answers[key] = value;
+  render();
+}
+
+function skip(key) {
+  answers[key] = 'skipped';
+  next();
+}
+
+function next() {
+  if (current < questions.length - 1) {
+    current++;
+    render();
+    window.scrollTo(0, 0);
+  }
+}
+
+function prev() {
+  if (current > 0) {
+    current--;
+    render();
+    window.scrollTo(0, 0);
+  }
+}
+
+function formatResults() {
+  const date = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  let out = `STUDENT LEARNING ASSESSMENT\nDate: ${date}\n${'='.repeat(40)}\n\n`;
+
+  const sections = {
+    'ARABIC LETTERS KNOWN': [
+      ['letter_alif', 'ا (Alif)'],
+      ['letter_ba', 'ب (Ba)'],
+      ['letter_ta', 'ت (Ta)'],
+      ['letter_tha', 'ث (Tha)'],
+      ['letter_jeem', 'ج (Jeem)'],
+      ['letter_ha', 'ح (Ha)'],
+      ['letter_kha', 'خ (Kha)']
+    ],
+    'FEELINGS & PREFERENCES': [
+      ['feeling_letters', 'Feeling about letters'],
+      ['helps_most', 'What helps most with letters'],
+      ['feeling_math', 'Feeling about math'],
+      ['math_likes', 'Favorite math activity'],
+      ['counting', 'Counting 1-20'],
+      ['quran_feeling', 'Feeling about Quran']
+    ],
+    'SENSORY PROFILE': [
+      ['sensory_sound', 'Loud sounds'],
+      ['sensory_light', 'Bright lights'],
+      ['routine', 'Routine preference'],
+      ['overwhelm_response', 'Response to overwhelm']
+    ],
+    'LEARNING STYLE': [
+      ['learning_style', 'Best learning method'],
+      ['memory_strength', 'What is easiest to remember'],
+      ['focus_duration', 'Focus duration']
+    ],
+    'INTERESTS': [
+      ['interest_1', 'Interest 1'],
+      ['interest_2', 'Interest 2']
+    ]
+  };
+
+  for (const [section, items] of Object.entries(sections)) {
+    out += `\n[ ${section} ]\n`;
+    for (const [key, label] of items) {
+      const ans = answers[key] || 'not answered';
+      out += `  • ${label}: ${ans}\n`;
+    }
+  }
+
+  out += `\n${'='.repeat(40)}\nEnd of assessment.`;
+  return out;
+}
+
+function copyResults() {
+  const text = document.getElementById('results').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+function downloadResults() {
+  const text = document.getElementById('results').textContent;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'student-assessment.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+render();
+</script>
+</body>
+</html>
