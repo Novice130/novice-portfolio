@@ -5,6 +5,7 @@ import uuid
 import shutil
 import subprocess
 import tempfile
+from typing import Optional
 from flask import Flask, request, render_template, send_file, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from docx import Document
@@ -67,7 +68,7 @@ def _split_docx_paragraph_indices(doc: Document) -> list[list[int]]:
     return blocks
 
 
-def _create_pptx_by_copy_paste_from_docx(docx_path: str, font_family: str, font_size: int) -> io.BytesIO | None:
+def _create_pptx_by_copy_paste_from_docx(docx_path: str, font_family: str, font_size: int) -> Optional[io.BytesIO]:
     """Windows-only: Use Word+PowerPoint COM automation to copy/paste question blocks.
 
     This preserves Word equation/fraction formatting far better than rebuilding text.
