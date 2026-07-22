@@ -1,0 +1,14 @@
+{
+  "note": "Representative view. Manually maintained — not live telemetry. Update by hand.",
+  "client": "ABRAAR ACADEMY",
+  "rows": [
+    { "tag": "AC-0118", "system": "domain controller", "status": "online", "check": "uptime 99.94%" },
+    { "tag": "AC-0119", "system": "replica", "status": "online", "check": "uptime 99.91%" },
+    { "tag": "AC-0204", "system": "filtering", "status": "online", "check": "14,208 blocked today" },
+    { "tag": "AC-0301", "system": "backup target", "status": "online", "check": "restore verified 6d ago" },
+    { "tag": "AC-0402", "system": "lab fleet A", "status": "24 / 24", "check": "patched 3d ago" },
+    { "tag": "AC-0403", "system": "lab fleet B", "status": "18 / 18", "check": "patched 3d ago" },
+    { "tag": "AC-0510", "system": "staff accounts", "status": "25", "check": "MFA enforced" },
+    { "tag": "AC-0511", "system": "student accounts", "status": "160", "check": "filtering enforced" }
+  ]
+}
