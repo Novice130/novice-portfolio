@@ -52,7 +52,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     description:
       'Managed IT, content filtering, device management, and platforms for private and faith-based schools, plus custom software.',
     areaServed: 'United States',
-    address: { '@type': 'PostalAddress', addressRegion: 'WY', addressCountry: 'US' },
     email: 'syedamer@learnnovice.com',
   };
 
@@ -63,6 +62,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
         <Nav />
         <main id="main">{children}</main>
         <Footer />

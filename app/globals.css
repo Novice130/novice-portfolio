@@ -157,6 +157,8 @@ img { max-width: 100%; height: auto; display: block; }
 .section {
   padding-block: 96px;
 }
+/* Keep anchored sections clear of the 72px sticky nav */
+.section[id] { scroll-margin-top: 88px; }
 .section--stripe { background: var(--stripe); }
 .section--tight { padding-block: 64px; }
 
@@ -556,6 +558,26 @@ a.card:hover { border-color: var(--leaf); }
 
 /* ============ nav ============ */
 
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 2px;
+}
+.skip-link:focus-visible {
+  left: 12px;
+  top: 12px;
+  color: var(--paper);
+  outline: 2px solid var(--leaf);
+}
+
 .nav {
   position: sticky;
   top: 0;
@@ -602,6 +624,13 @@ a.card:hover { border-color: var(--leaf); }
   text-decoration: none;
 }
 .nav-links a:not(.btn):hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--leaf);
+  text-underline-offset: 4px;
+}
+.nav-links a[aria-current='page']:not(.btn) {
   color: var(--ink);
   text-decoration: underline;
   text-decoration-thickness: 1px;

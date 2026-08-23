@@ -23,7 +23,7 @@ const facts = [
   {
     label: 'WHERE THE TEAM IS',
     detail:
-      'Engineering in Hyderabad, India. Named local partners for on-site work in covered US metros. Entity in Wyoming, USA.',
+      'Engineering in Hyderabad, India. Named local partners for on-site work in covered US metros, serving schools across the US.',
   },
   {
     label: 'HOW CONTRACTING WORKS',

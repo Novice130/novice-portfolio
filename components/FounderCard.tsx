@@ -77,7 +77,7 @@ export default function FounderCard() {
             ['CLASSROOM', '6 years, ongoing'],
             ['RUNS', 'the school’s own infrastructure'],
             ['BASE', 'Hyderabad, India'],
-            ['ENTITY', 'Novice Digital Solutions, WY, USA'],
+            ['ENTITY', 'Novice Digital Solutions'],
           ].map(([k, v], i) => (
             <tr key={k} style={{ background: i % 2 === 0 ? 'var(--stripe)' : 'transparent' }}>
               <td style={labelStyle}>{k}</td>

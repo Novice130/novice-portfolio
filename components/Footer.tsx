@@ -37,13 +37,13 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4>Entity</h4>
+            <h4>Company</h4>
             <p className="small muted">
               Novice Digital Solutions
               <br />
-              Wyoming, USA
-              <br />
               Engineering in Hyderabad, India
+              <br />
+              Serving schools across the US
             </p>
           </div>
         </div>

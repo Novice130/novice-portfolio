@@ -155,7 +155,7 @@ AA contrast on every pairing (verify `--graphite` on `--stripe` specifically). V
 
 **Nav:** `[🌳 Novice] ......... For Schools · Work · About · [Talk to us →]`
 
-**Footer entity line:** Novice Digital Solutions · Wyoming, USA · Engineering in Hyderabad, India
+**Footer company line:** Novice Digital Solutions · Engineering in Hyderabad, India · Serving schools across the US
 
 Remove the Twitter link. Do not replace it.
 

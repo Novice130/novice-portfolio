@@ -2,18 +2,28 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const links = [
   { href: '/schools', label: 'For Schools' },
   { href: '/work', label: 'Work' },
   { href: '/about', label: 'About' },
+  { href: '/trust', label: 'Trust' },
 ];
 
 export default function Nav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
   return (
     <header className="nav">
