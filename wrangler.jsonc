@@ -1,7 +1,7 @@
 {
   // Static-assets-only Worker: serves the Next.js static export in ./out.
   // Build: npm run build   Deploy: npx wrangler deploy
-  "name": "learnnovice-portfolio",
+  "name": "novice-portfolio",
   "compatibility_date": "2026-07-01",
   "assets": {
     "directory": "./out",
