@@ -6,10 +6,10 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const links = [
-  { href: '/schools', label: 'For Schools' },
-  { href: '/work', label: 'Work' },
-  { href: '/about', label: 'About' },
-  { href: '/trust', label: 'Trust' },
+  { href: '/school/managed-it', label: 'Managed IT' },
+  { href: '/school/work', label: 'Work' },
+  { href: '/school/about', label: 'About' },
+  { href: '/school/trust', label: 'Trust' },
 ];
 
 export default function Nav() {
@@ -28,7 +28,7 @@ export default function Nav() {
   return (
     <header className="nav">
       <div className="nav-inner">
-        <Link href="/" className="nav-brand" onClick={() => setOpen(false)}>
+        <Link href="/school" className="nav-brand" onClick={() => setOpen(false)}>
           <Image src="/logo-sketch-nav.png" alt="Novice tree mark" width={28} height={28} style={{ objectFit: 'contain' }} />
           Novice
         </Link>
@@ -54,7 +54,7 @@ export default function Nav() {
             <li key={l.href}>
               <Link
                 href={l.href}
-                aria-current={pathname === l.href ? 'page' : undefined}
+                aria-current={pathname.replace(/\/$/, '') === l.href ? 'page' : undefined}
                 onClick={() => setOpen(false)}
               >
                 {l.label}
@@ -62,7 +62,12 @@ export default function Nav() {
             </li>
           ))}
           <li>
-            <Link href="/contact" className="btn btn--primary" onClick={() => setOpen(false)}>
+            <Link href="/" onClick={() => setOpen(false)}>
+              Gallery
+            </Link>
+          </li>
+          <li>
+            <Link href="/school/contact" className="btn btn--primary" onClick={() => setOpen(false)}>
               Talk to us →
             </Link>
           </li>

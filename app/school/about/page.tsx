@@ -108,7 +108,7 @@ export default function About() {
           <li className="chip">Homelab</li>
         </ul>
         <div className="btn-row">
-          <Link href="/contact" className="btn btn--primary">
+          <Link href="/school/contact" className="btn btn--primary">
             Talk to us →
           </Link>
         </div>

@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="container">
         <div className="footer-cols">
           <div>
-            <Link href="/" className="nav-brand" style={{ marginBottom: 12 }}>
+            <Link href="/school" className="nav-brand" style={{ marginBottom: 12 }}>
               <Image src="/logo-sketch-nav.png" alt="Novice tree mark" width={28} height={28} style={{ objectFit: 'contain' }} />
               Novice
             </Link>
@@ -19,11 +19,12 @@ export default function Footer() {
           <nav aria-label="Footer">
             <h4>Pages</h4>
             <ul>
-              <li><Link href="/schools">For Schools</Link></li>
-              <li><Link href="/work">Work</Link></li>
-              <li><Link href="/about">About</Link></li>
-              <li><Link href="/trust">Trust</Link></li>
-              <li><Link href="/contact">Contact</Link></li>
+              <li><Link href="/school/managed-it">Managed IT</Link></li>
+              <li><Link href="/school/work">Work</Link></li>
+              <li><Link href="/school/about">About</Link></li>
+              <li><Link href="/school/trust">Trust</Link></li>
+              <li><Link href="/school/contact">Contact</Link></li>
+              <li><Link href="/">Gallery</Link></li>
             </ul>
           </nav>
 

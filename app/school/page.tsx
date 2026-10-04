@@ -24,10 +24,10 @@ export default function Home() {
               until it does.
             </p>
             <div className="btn-row hero-fade hero-fade-2">
-              <Link href="/schools" className="btn btn--primary">
+              <Link href="/school/managed-it" className="btn btn--primary">
                 See the school offer →
               </Link>
-              <Link href="/work" className="btn btn--secondary">
+              <Link href="/school/work" className="btn btn--secondary">
                 Everything else we build
               </Link>
             </div>
@@ -41,13 +41,13 @@ export default function Home() {
       {/* § Router — 02 / START HERE */}
       <Section rail="02 / START HERE" stripe>
         <div className="grid-12" data-reveal-group>
-          <Link href="/schools" className="card col-6" data-reveal>
+          <Link href="/school/managed-it" className="card col-6" data-reveal>
             <h3>I run a school</h3>
             <p className="muted" style={{ marginBottom: 0 }}>
               Managed IT, filtering, devices, parent portals, and platforms. →
             </p>
           </Link>
-          <Link href="/contact" className="card col-6" data-reveal>
+          <Link href="/school/contact" className="card col-6" data-reveal>
             <h3>I need software built</h3>
             <p className="muted" style={{ marginBottom: 0 }}>
               SaaS, internal tools, and business platforms outside education. →
@@ -153,7 +153,7 @@ export default function Home() {
           })}
         </div>
         <div className="btn-row">
-          <Link href="/work" className="btn btn--quiet">
+          <Link href="/school/work" className="btn btn--quiet">
             See all work →
           </Link>
         </div>
@@ -177,7 +177,7 @@ export default function Home() {
               working.
             </p>
             <div className="btn-row">
-              <Link href="/about" className="btn btn--quiet">
+              <Link href="/school/about" className="btn btn--quiet">
                 More about Novice →
               </Link>
             </div>
@@ -194,7 +194,7 @@ export default function Home() {
             written summary of what we find. No charge, no obligation.
           </p>
           <div className="btn-row" style={{ justifyContent: 'center' }}>
-            <Link href="/contact" className="btn btn--primary">
+            <Link href="/school/contact" className="btn btn--primary">
               Book a call →
             </Link>
           </div>

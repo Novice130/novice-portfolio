@@ -410,7 +410,7 @@ export default function Schools() {
         <p className="small" style={{ marginTop: 24 }}>
           &ldquo;We&rsquo;ll work through your data privacy agreement —
           including NDPA-format agreements — before anything is signed.&rdquo;{' '}
-          <Link href="/trust">Read the full trust page →</Link>
+          <Link href="/school/trust">Read the full trust page →</Link>
         </p>
       </Section>
 
@@ -419,7 +419,7 @@ export default function Schools() {
         <h2>
           <em>Proof.</em>
         </h2>
-        <Link href="/work/abraar-academy/" className="card" style={{ marginTop: 32, display: 'block' }}>
+        <Link href="/school/work/abraar-academy/" className="card" style={{ marginTop: 32, display: 'block' }}>
           <div className="eyebrow">NV-01 · Case study</div>
           <h3>Abraar Academy — rebuilt after the provider left</h3>
           <p className="small">

@@ -17,7 +17,7 @@ export const projects: Project[] = [
     filter: 'Infrastructure',
     outcome: 'Rebuilt after the provider left',
     year: '2025',
-    href: '/work/abraar-academy/',
+    href: '/school/work/abraar-academy/',
   },
   {
     tag: 'NV-02',

@@ -155,10 +155,10 @@ export default function AbraarCaseStudy() {
           view is shown above; screenshots available on a call.
         </p>
         <div className="btn-row">
-          <Link href="/schools" className="btn btn--primary">
+          <Link href="/school/managed-it" className="btn btn--primary">
             This is what the school offer looks like →
           </Link>
-          <Link href="/work" className="btn btn--quiet">
+          <Link href="/school/work" className="btn btn--quiet">
             ← All work
           </Link>
         </div>

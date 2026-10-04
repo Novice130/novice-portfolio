@@ -1,10 +1,6 @@
 import type { Metadata } from 'next';
 import { Newsreader, Public_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
-import Nav from '@/components/Nav';
-import Footer from '@/components/Footer';
-import ScrollFx from '@/components/ScrollFx';
-import SectionNav from '@/components/SectionNav';
 
 const display = Newsreader({
   subsets: ['latin'],
@@ -30,12 +26,9 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://learnnovice.com'),
-  title: {
-    default: 'Novice — Managed IT and platforms for schools',
-    template: '%s — Novice',
-  },
+  title: 'Novice — Collected works',
   description:
-    'We design, document, and maintain the technology a school runs on — networks, devices, filtering, backups, and the platforms on top of them.',
+    'A gallery of the websites, platforms and tools Novice has built — with Apache Tandoori, open-source remote management for school labs, at the centre.',
   openGraph: {
     siteName: 'Novice',
     type: 'website',
@@ -44,32 +37,13 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'ProfessionalService',
-    name: 'Novice Digital Solutions',
-    url: 'https://learnnovice.com',
-    description:
-      'Managed IT, content filtering, device management, and platforms for private and faith-based schools, plus custom software.',
-    areaServed: 'United States',
-    email: 'syedamer@learnnovice.com',
-  };
-
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
         <a href="#main" className="skip-link">
           Skip to content
         </a>
-        <Nav />
-        <main id="main">{children}</main>
-        <Footer />
-        <ScrollFx />
-        <SectionNav />
+        {children}
       </body>
     </html>
   );

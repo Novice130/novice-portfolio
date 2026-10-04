@@ -1,0 +1,10 @@
+/schools /school/managed-it/ 301
+/schools/* /school/managed-it/:splat 301
+/work /school/work/ 301
+/work/* /school/work/:splat 301
+/about /school/about/ 301
+/about/* /school/about/:splat 301
+/trust /school/trust/ 301
+/trust/* /school/trust/:splat 301
+/contact /school/contact/ 301
+/contact/* /school/contact/:splat 301
