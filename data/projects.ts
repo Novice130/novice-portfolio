@@ -26,7 +26,7 @@ export const projects: Project[] = [
     filter: 'Schools',
     outcome: 'Site and systems for the operator',
     year: '2025',
-    href: '/citcd/',
+    href: '/CITCD-website/',
     external: true,
   },
   {
