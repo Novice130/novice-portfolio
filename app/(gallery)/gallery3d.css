@@ -1,0 +1,851 @@
+/* ============================================================
+   Gallery, walked — the 3D homepage and its HUD.
+   <html data-gmode="3d|flat"> picks the view (set before paint
+   by the layout script). No attribute = no JS = flat catalogue.
+   Everything here is prefixed .g3 and inherits gallery.css tokens.
+   HUD = type straight on the scene, lifted by soft scrims.
+   ============================================================ */
+
+/* ============ HUD tokens ============ */
+
+.g3-head,
+.g3-stage,
+.g3-curtain {
+  --g3-ink: #1c1814;
+  --g3-soft: #5c544a;
+  --g3-hair: rgba(28, 24, 20, 0.38);
+  --g3-shade: 247, 242, 232;
+  --g3-solid: #f4efe4;
+  --g3-accent: #7c1f1f;
+  --g3-ease: cubic-bezier(0.2, 0.7, 0.1, 1);
+}
+:root[data-gtheme='dark'] .g3-head,
+:root[data-gtheme='dark'] .g3-stage,
+:root[data-gtheme='dark'] .g3-curtain {
+  --g3-ink: #ead9a8;
+  --g3-soft: #b9a97e;
+  --g3-hair: rgba(234, 217, 168, 0.4);
+  --g3-shade: 10, 8, 6;
+  --g3-solid: #0a0806;
+  --g3-accent: #c9a85a;
+}
+
+/* ============ mode ============ */
+
+:root[data-gmode='3d'] { scroll-behavior: auto; }
+:root[data-gmode='3d'] .g3-flat,
+:root[data-gmode='3d'] .g-foot,
+:root[data-gmode='3d'] .gallery::before { display: none; }
+
+.g3-tools {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 2vw, 22px);
+}
+
+.g3-mode {
+  display: none;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--g3-hair);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--g3-ink);
+  font: 400 0.6875rem/1 var(--font-mono), monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+:root[data-gmode] .g3-mode { display: inline-flex; }
+:root[data-g3='none'] .g3-mode { display: none; }
+:root[data-gmode='3d'] .g3-mode-walk,
+:root:not([data-gmode='3d']) .g3-mode-list { display: none; }
+.g3-mode:hover { background: var(--g3-ink); border-color: var(--g3-ink); color: var(--g3-solid); }
+
+.g3-head .g3-mode:focus-visible,
+.g3-stage :focus-visible {
+  outline: 1px solid var(--g3-ink);
+  outline-offset: 5px;
+  box-shadow: 0 0 0 5px rgba(var(--g3-shade), 0.55);
+}
+
+/* ============ top bar ============ */
+
+:root[data-gmode='3d'] .g3-head {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 30;
+  max-width: none;
+  padding: max(14px, env(safe-area-inset-top)) max(var(--g-gutter), env(safe-area-inset-right)) 40px
+    max(var(--g-gutter), env(safe-area-inset-left));
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--g3-shade), 0.36),
+    rgba(var(--g3-shade), 0.14) 45%,
+    transparent
+  );
+  border: 0;
+  pointer-events: none;
+}
+:root[data-gmode='3d'] .g3-head > * { pointer-events: auto; }
+
+.g3-head .g-mark {
+  color: var(--g3-ink);
+  font: 500 clamp(1.375rem, 2.2vw, 1.75rem) / 1 var(--font-museum), Georgia, serif;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  text-shadow: 0 0 14px rgba(var(--g3-shade), 0.7);
+}
+.g3-head .g-mark span {
+  margin-left: 0.35em;
+  color: var(--g3-soft);
+  font: 400 0.625rem/1 var(--font-mono), monospace;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+/* ============ curtain: wordmark, hairline, then the doors part ============ */
+
+.g3-curtain {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  place-items: center;
+  color: var(--g3-ink);
+  transition: visibility 0s 1.15s;
+}
+:root[data-gmode='3d'] .g3-curtain { display: grid; }
+.g3-curtain.is-open { visibility: hidden; pointer-events: none; }
+
+.g3-curtain-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  background: var(--g3-solid);
+  transition: transform 0.9s var(--g3-ease) 0.2s;
+}
+.g3-curtain-panel--l { left: 0; }
+.g3-curtain-panel--r { right: 0; }
+.g3-curtain.is-open .g3-curtain-panel--l { transform: translateX(-101%); }
+.g3-curtain.is-open .g3-curtain-panel--r { transform: translateX(101%); }
+
+.g3-curtain-body {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+  transition: opacity 0.4s ease, transform 0.6s var(--g3-ease);
+}
+.g3-curtain.is-open .g3-curtain-body { opacity: 0; transform: translateY(-10px); }
+.g3-curtain-mark {
+  margin: 0;
+  font: 500 clamp(2.25rem, 7vw, 4rem) / 1 var(--font-museum), Georgia, serif;
+  letter-spacing: 0.01em;
+  animation: g3-fade-up 1s var(--g3-ease) both;
+}
+.g3-curtain-mark span {
+  display: block;
+  margin-top: 0.9em;
+  color: var(--g3-soft);
+  font: 400 0.6875rem/1 var(--font-mono), monospace;
+  letter-spacing: 0.4em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.g3-curtain-line {
+  width: min(200px, 50vw);
+  height: 1px;
+  background: var(--g3-hair);
+  overflow: hidden;
+}
+.g3-curtain-line span {
+  display: block;
+  height: 100%;
+  background: var(--g3-ink);
+  transform-origin: 0 50%;
+  transition: transform 0.5s ease;
+}
+.g3-curtain small {
+  color: var(--g3-soft);
+  font: 400 0.625rem/1 var(--font-mono), monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+@keyframes g3-fade-up { from { opacity: 0; transform: translateY(10px); } }
+
+/* ============ stage: canvas + scroll track ============ */
+
+.g3-stage {
+  position: relative;
+  isolation: isolate;
+  --g3-edge: clamp(24px, 5vh, 52px);
+  color: var(--g3-ink);
+}
+
+/* Sized to the large viewport so the mobile address bar sliding away never
+   resizes the renderer; the track below is what actually scrolls. */
+.g3-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
+  touch-action: pinch-zoom;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* soft shadow-coloured wash that lets type sit straight on any wall */
+.g3-scrim {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 1;
+  height: 72vh;
+  height: 72svh;
+  /* pooled in the caption's corner so the rest of the room keeps its colour */
+  background:
+    radial-gradient(
+      ellipse 62% 78% at 0% 100%,
+      rgba(var(--g3-shade), 0.8) 0%,
+      rgba(var(--g3-shade), 0.5) 38%,
+      rgba(var(--g3-shade), 0.14) 68%,
+      transparent 82%
+    ),
+    /* a smaller pool under the prev / next controls */
+    radial-gradient(
+      ellipse 26% 30% at 100% 100%,
+      rgba(var(--g3-shade), 0.78) 0%,
+      rgba(var(--g3-shade), 0.4) 50%,
+      transparent 100%
+    );
+  pointer-events: none;
+}
+
+.g3-track {
+  position: relative;
+  z-index: 1;
+  /* keeps the last stop reachable when the viewport is taller than 100svh */
+  padding-bottom: calc(100lvh - 100svh);
+  pointer-events: none;
+}
+.g3-stop {
+  height: 100vh;
+  height: 100svh;
+}
+
+/* ============ caption: wall text, no box ============ */
+
+.g3-card {
+  position: fixed;
+  left: max(var(--g-gutter), env(safe-area-inset-left));
+  bottom: var(--g3-edge);
+  z-index: 2;
+  display: grid;
+  justify-items: start;
+  width: min(36rem, calc(100vw - 2 * var(--g-gutter)));
+  color: var(--g3-ink);
+  text-shadow: 0 0 22px rgba(var(--g3-shade), 0.55);
+  pointer-events: none;
+}
+.g3-card.is-current { pointer-events: auto; }
+.g3-card--intro { width: min(60rem, calc(100vw - 2 * var(--g-gutter))); }
+
+.g3-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 clamp(12px, 2vh, 20px);
+}
+.g3-rule {
+  flex: none;
+  width: 44px;
+  height: 1px;
+  background: var(--g3-ink);
+  transform-origin: 0 50%;
+}
+.g3-card--centerpiece .g3-rule { background: var(--g3-accent); }
+
+.g3-card .g3-meta {
+  margin: 0;
+  color: var(--g3-soft);
+  font: 400 0.6875rem/1.5 var(--font-mono), monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.g3-card .g3-meta b {
+  margin-right: 1.1em;
+  color: var(--g3-ink);
+  font-weight: 500;
+}
+
+.g3-card .g3-title {
+  margin: 0;
+  font-family: var(--font-museum), var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(2.6rem, 5.4vw, 5rem);
+  line-height: 0.98;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+.g3-card--intro .g3-title { font-size: clamp(3.25rem, 9vw, 8rem); line-height: 0.92; font-style: italic; font-weight: 400; }
+.g3-card--centerpiece .g3-title { font-style: italic; }
+.g3-mask {
+  display: block;
+  overflow: hidden;
+  padding: 0.04em 0.06em 0.12em 0;
+  margin-bottom: -0.1em;
+}
+.g3-line { display: block; }
+
+.g3-card .g3-tag {
+  display: inline-flex;
+  align-items: center;
+  margin: 14px 0 0;
+  padding: 6px 12px;
+  border: 1px solid var(--g3-hair);
+  border-radius: 999px;
+  color: var(--g3-soft);
+  font: 400 0.625rem/1 var(--font-mono), monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.g3-card .g3-blurb {
+  margin: clamp(12px, 2vh, 20px) 0 0;
+  max-width: 34ch;
+  color: var(--g3-ink);
+  opacity: 0.88;
+  font: 400 clamp(0.9375rem, 1.1vw, 1.0625rem) / 1.55 var(--font-body), system-ui, sans-serif;
+}
+
+.g3-card .g3-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin-top: clamp(6px, 1.2vh, 14px);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--g3-ink);
+  font: 500 0.75rem/1 var(--font-mono), monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+.g3-card .g3-cta::before,
+.g3-card .g3-cta::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9px;
+  height: 1px;
+  background: currentColor;
+}
+.g3-card .g3-cta::before { opacity: 0.3; }
+.g3-card .g3-cta::after {
+  background: var(--g3-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.5s var(--g3-ease);
+}
+:root[data-gtheme='dark'] .g3-card .g3-cta::after { background: var(--g3-ink); }
+.g3-card .g3-cta:hover::after,
+.g3-card .g3-cta:focus-visible::after { transform: scaleX(1); }
+
+/* discreet scroll cue, intro only */
+.g3-scroll {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--g3-edge) - 6px);
+  width: 1px;
+  height: 52px;
+  background: var(--g3-hair);
+  overflow: hidden;
+}
+.g3-scroll::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 40%;
+  background: var(--g3-ink);
+  animation: g3-scroll 2.2s var(--g3-ease) infinite;
+}
+@keyframes g3-scroll {
+  0% { transform: translateY(-100%); }
+  70%, 100% { transform: translateY(260%); }
+}
+
+/* ---- reveal / retreat ----
+   Shown by default, with staggered delays. While the camera walks (or the stop
+   is not current) everything fades and drifts down in 250ms with no delay. */
+
+.g3-card .g3-r,
+.g3-card .g3-rule,
+.g3-card .g3-line {
+  transition: opacity 0.6s ease, transform 0.7s var(--g3-ease);
+}
+.g3-card .g3-rule { transition-property: transform; transition-duration: 0.7s; transition-delay: 0s; }
+.g3-card .g3-meta { transition-delay: 0.1s; }
+.g3-card .g3-line { transition-property: transform; transition-delay: 0.16s; }
+.g3-card .g3-tag { transition-delay: 0.3s; }
+.g3-card .g3-blurb { transition-delay: 0.34s; }
+.g3-card .g3-cta { transition-delay: 0.43s; }
+.g3-card .g3-scroll { transition-delay: 0.9s; }
+
+:is(.g3-card:not(.is-current), :root[data-g3walk] .g3-card, .g3-stage.is-walking .g3-card, :root:not([data-g3face]) .g3-card) .g3-r {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition-delay: 0s;
+}
+:is(.g3-card:not(.is-current), :root[data-g3walk] .g3-card, .g3-stage.is-walking .g3-card, :root:not([data-g3face]) .g3-card) .g3-rule {
+  transform: scaleX(0);
+  transition: transform 0.25s ease;
+  transition-delay: 0s;
+}
+:is(.g3-card:not(.is-current), :root[data-g3walk] .g3-card, .g3-stage.is-walking .g3-card, :root:not([data-g3face]) .g3-card) .g3-line {
+  transform: translateY(112%);
+  transition: transform 0.25s ease;
+  transition-delay: 0s;
+}
+/* the scroll cue is positioned, so it only fades */
+:is(.g3-card:not(.is-current), :root[data-g3walk] .g3-card, .g3-stage.is-walking .g3-card, :root:not([data-g3face]) .g3-card) .g3-scroll {
+  transform: none;
+}
+
+/* ============ dock: prev / counter / next, and the rail ============ */
+
+.g3-dock {
+  position: fixed;
+  right: max(var(--g-gutter), env(safe-area-inset-right));
+  bottom: var(--g3-edge);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.g3-mid { display: contents; }
+
+.g3-step {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--g3-hair);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--g3-ink);
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s, border-color 0.3s, transform 0.3s, opacity 0.3s;
+}
+.g3-step svg { transition: transform 0.3s var(--g3-ease); }
+.g3-step:hover { background: var(--g3-ink); border-color: var(--g3-ink); color: var(--g3-solid); }
+.g3-step:hover svg { transform: translateX(2px); }
+.g3-step:first-child:hover svg { transform: translateX(-2px); }
+.g3-step:active { transform: scale(0.94); }
+.g3-step[aria-disabled='true'] { opacity: 0.3; cursor: default; pointer-events: none; }
+
+.g3-count {
+  margin: 0;
+  color: var(--g3-soft);
+  font: 400 0.75rem/1 var(--font-mono), monospace;
+  letter-spacing: 0.14em;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 0 12px rgba(var(--g3-shade), 0.8);
+}
+.g3-count b { color: var(--g3-ink); font-weight: 500; }
+
+.g3-rail {
+  position: fixed;
+  top: 50%;
+  right: max(calc(var(--g-gutter) - 14px), env(safe-area-inset-right));
+  z-index: 3;
+  transform: translateY(-50%);
+}
+.g3-rail ol {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.g3-tick button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 48px;
+  height: 22px;
+  padding: 0 14px 0 0;
+  border: 0;
+  background: none;
+  color: var(--g3-ink);
+  cursor: pointer;
+}
+.g3-tick i {
+  display: block;
+  width: 10px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.45;
+  transition: width 0.4s var(--g3-ease), opacity 0.3s ease;
+}
+.g3-tick button:hover i,
+.g3-tick button:focus-visible i { opacity: 0.9; width: 18px; }
+.g3-tick button[aria-current] i { width: 30px; opacity: 1; }
+
+/* the centrepiece is a small diamond */
+.g3-tick--centerpiece button { height: 28px; }
+.g3-tick--centerpiece i,
+.g3-tick--centerpiece button:hover i,
+.g3-tick--centerpiece button:focus-visible i,
+.g3-tick--centerpiece button[aria-current] i {
+  width: 7px;
+  height: 7px;
+  margin-right: 1px;
+  background: none;
+  box-shadow: inset 0 0 0 1px currentColor;
+  opacity: 0.85;
+  transform: rotate(45deg);
+}
+.g3-tick--centerpiece button[aria-current] i {
+  background: var(--g3-accent);
+  box-shadow: inset 0 0 0 1px var(--g3-accent);
+  opacity: 1;
+  transform: rotate(45deg) scale(1.3);
+}
+
+/* title shown as quiet text beside the tick */
+.g3-tick button::after {
+  content: attr(data-tip);
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  margin-right: -6px;
+  color: var(--g3-ink);
+  font: 400 0.625rem/1 var(--font-mono), monospace;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 10px rgba(var(--g3-shade), 0.9), 0 0 3px rgba(var(--g3-shade), 0.9);
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(8px, -50%);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.4s var(--g3-ease);
+}
+.g3-tick button:hover::after,
+.g3-tick button:focus-visible::after { opacity: 1; transform: translate(0, -50%); }
+
+/* ============ first-visit hint ============ */
+
+.g3-hint {
+  position: fixed;
+  top: clamp(84px, 13vh, 128px);
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--g3-ink);
+  font: 400 0.625rem/1.2 var(--font-mono), monospace;
+  letter-spacing: 0.22em;
+  text-shadow: 0 0 12px rgba(var(--g3-shade), 0.9);
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: g3-hint-in 0.8s 1.6s both;
+}
+.g3-hint-cue {
+  position: relative;
+  flex: none;
+  width: 12px;
+  height: 20px;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+}
+.g3-hint-cue::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 1px;
+  height: 5px;
+  background: currentColor;
+  animation: g3-cue 1.6s ease-in-out infinite;
+}
+@keyframes g3-hint-in { from { opacity: 0; transform: translate(-50%, -8px); } }
+@keyframes g3-cue {
+  0% { opacity: 0; transform: translateY(-2px); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(7px); }
+}
+
+.g3-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ============ phones, portrait: wall text over a slim scrim, one control row ============ */
+
+@media (max-width: 640px) {
+  .g3-stage { --g3-dock: 64px; }
+
+  .g3-head .g-mark span { display: none; }
+  .g3-head .g-mark { font-size: 1.375rem; }
+  .g3-opt { display: none; }
+  .g3-mode { min-height: 48px; padding: 0 16px; }
+  .g3-head .switch-text { display: none; }
+  :root[data-gmode='3d'] .g3-head { padding-bottom: 28px; }
+
+  .g3-scrim {
+    height: calc(36vh + env(safe-area-inset-bottom));
+    height: calc(36dvh + env(safe-area-inset-bottom));
+    background: linear-gradient(
+      to top,
+      rgba(var(--g3-shade), 0.9) 0%,
+      rgba(var(--g3-shade), 0.72) 45%,
+      rgba(var(--g3-shade), 0.3) 78%,
+      transparent 100%
+    );
+  }
+
+  .g3-dock {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    gap: 12px;
+    align-items: center;
+    height: calc(var(--g3-dock) + env(safe-area-inset-bottom));
+    padding: 8px max(16px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+  .g3-mid {
+    display: grid;
+    align-content: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .g3-count { font-size: 0.6875rem; }
+
+  /* the rail becomes a slim segmented progress hairline */
+  .g3-rail { position: static; transform: none; }
+  .g3-rail ol { flex-direction: row; align-items: center; }
+  .g3-tick { flex: 1 1 0; min-width: 0; }
+  .g3-tick button,
+  .g3-tick--centerpiece button {
+    justify-content: center;
+    width: 100%;
+    height: 20px;
+    padding: 0 1px;
+  }
+  .g3-tick i,
+  .g3-tick button:hover i,
+  .g3-tick button:focus-visible i { width: 100%; height: 1px; }
+  .g3-tick button[aria-current] i { width: 100%; height: 2px; }
+  .g3-tick--centerpiece i,
+  .g3-tick--centerpiece button:hover i,
+  .g3-tick--centerpiece button:focus-visible i,
+  .g3-tick--centerpiece button[aria-current] i { width: 7px; height: 7px; margin: 0; }
+  .g3-tick button::after { display: none; }
+
+  .g3-card {
+    left: 0;
+    right: 0;
+    bottom: calc(var(--g3-dock) + env(safe-area-inset-bottom) + 4px);
+    width: auto;
+    padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+  }
+  .g3-card--intro { width: auto; }
+  .g3-eyebrow { margin-bottom: 8px; gap: 10px; }
+  .g3-rule { width: 28px; }
+  .g3-card .g3-meta { font-size: 0.625rem; letter-spacing: 0.14em; }
+  .g3-card .g3-title { font-size: clamp(1.9rem, 8.4vw, 2.4rem); }
+  .g3-card--intro .g3-title { font-size: clamp(2.6rem, 13vw, 3.6rem); }
+  .g3-card .g3-tag { margin-top: 8px; padding: 5px 10px; }
+  .g3-card .g3-blurb {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    margin-top: 8px;
+    max-width: none;
+    overflow: hidden;
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+  .g3-card .g3-cta { margin-top: 2px; }
+  .g3-scroll { display: none; }
+
+  .g3-hint { top: clamp(68px, 11vh, 96px); font-size: 0.5625rem; letter-spacing: 0.16em; }
+}
+
+/* ============ landscape phones: caption left, controls right ============ */
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .g3-stage { --g3-edge: 16px; }
+  .g3-head .g-mark span { display: none; }
+  .g3-opt { display: none; }
+  :root[data-gmode='3d'] .g3-head { padding-bottom: 20px; }
+
+  .g3-scrim {
+    inset: 0 auto 0 0;
+    width: min(62vw, 34rem);
+    height: auto;
+    background: linear-gradient(
+      to right,
+      rgba(var(--g3-shade), 0.84) 0%,
+      rgba(var(--g3-shade), 0.55) 55%,
+      transparent 100%
+    );
+  }
+
+  .g3-dock {
+    left: auto;
+    right: max(var(--g-gutter), env(safe-area-inset-right));
+    bottom: var(--g3-edge);
+    display: flex;
+    height: auto;
+    padding: 0;
+    gap: 14px;
+  }
+  .g3-mid { display: contents; }
+  .g3-rail { display: none; }
+
+  .g3-card {
+    left: max(var(--g-gutter), env(safe-area-inset-left));
+    right: auto;
+    bottom: var(--g3-edge);
+    width: min(24rem, 52vw);
+    padding: 0;
+  }
+  .g3-card--intro { width: min(30rem, 62vw); }
+  .g3-eyebrow { margin-bottom: 6px; }
+  .g3-card .g3-title { font-size: clamp(1.5rem, 6vh, 1.9rem); }
+  .g3-card--intro .g3-title { font-size: clamp(2rem, 11vh, 2.75rem); }
+  .g3-card .g3-blurb {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    margin-top: 6px;
+    font-size: 0.8125rem;
+  }
+  .g3-scroll { display: none; }
+  .g3-hint { top: 64px; }
+}
+
+/* ============ stillness ============ */
+
+/* gallery.css already strips animation and transition under .gallery. The one
+   exception: the engine cuts between stops instead of walking, and a short
+   fade keeps each cut from reading as a glitch. */
+@keyframes g3-cut { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .gallery .g3-canvas.is-cut { animation: g3-cut 0.24s ease-out !important; }
+
+  /* reveals become plain 150ms fades */
+  .gallery .g3-card .g3-r,
+  .gallery .g3-card .g3-rule,
+  .gallery .g3-card .g3-line {
+    transform: none !important;
+    transition: opacity 0.15s linear !important;
+    transition-delay: 0s !important;
+  }
+  .gallery .g3-card .g3-rule,
+  .gallery .g3-card .g3-line { opacity: 1; }
+  :is(.g3-card:not(.is-current), :root[data-g3walk] .g3-card, .g3-stage.is-walking .g3-card, :root:not([data-g3face]) .g3-card) .g3-r,
+  :is(.g3-card:not(.is-current), :root[data-g3walk] .g3-card, .g3-stage.is-walking .g3-card, :root:not([data-g3face]) .g3-card) .g3-rule,
+  :is(.g3-card:not(.is-current), :root[data-g3walk] .g3-card, .g3-stage.is-walking .g3-card, :root:not([data-g3face]) .g3-card) .g3-line {
+    opacity: 0 !important;
+  }
+  .gallery .g3-scroll::after,
+  .gallery .g3-hint-cue::after { animation: none !important; }
+
+  /* the curtain simply fades */
+  .gallery .g3-curtain { transition: opacity 0.15s linear, visibility 0s 0.15s !important; }
+  .gallery .g3-curtain.is-open { opacity: 0; }
+  .gallery .g3-curtain-panel,
+  .gallery .g3-curtain-body { transition: none !important; transform: none !important; }
+  .gallery .g3-curtain-mark { animation: none !important; }
+}
+
+/* wall text stays legible where it leaves the scrim (deep red salon, dark dado) */
+.g3-card .g3-meta,
+.g3-card .g3-blurb {
+  text-shadow: 0 0 3px rgba(var(--g3-shade), 0.9), 0 0 16px rgba(var(--g3-shade), 0.95), 0 0 34px rgba(var(--g3-shade), 0.8);
+}
+.g3-card .g3-meta { color: var(--g3-ink); }
+.g3-count { flex: none; min-width: 5.5em; text-align: center; white-space: nowrap; }
+
+/* the walk steps on swipe; native panning would fight the camera */
+:root[data-gmode='3d'][data-g3='live'] body { touch-action: pinch-zoom; overscroll-behavior: none; }
+
+/* looking down the gallery: no caption, no corner pool; they arrive when a work is chosen */
+:root:not([data-g3face]) .g3-card { pointer-events: none; }
+.g3-scrim { transition: opacity 0.45s ease; }
+:root:not([data-g3face]) .g3-scrim { opacity: 0.35; }
+
+/* ---- caption that pops: a frosted wall-text panel behind the chosen work's details ---- */
+.g3-card .g3-cta {
+  padding: 0 22px;
+  background: var(--g3-ink);
+  color: var(--g3-solid);
+  text-shadow: none;
+  transition: background 0.25s, transform 0.25s var(--g3-ease), opacity 0.4s;
+}
+.g3-card .g3-cta::before,
+.g3-card .g3-cta::after { content: none; }
+.g3-card .g3-cta:hover,
+.g3-card .g3-cta:focus-visible { background: var(--g3-accent); transform: translateY(-1px); }
+:root[data-gtheme='dark'] .g3-card .g3-cta:hover,
+:root[data-gtheme='dark'] .g3-card .g3-cta:focus-visible { background: #fff3cf; }
+
+@media (min-width: 641px) and (min-height: 481px) {
+  .g3-card:not(.g3-card--intro) {
+    width: min(30rem, calc(100vw - 2 * var(--g-gutter)));
+    padding: 26px 30px 28px;
+    text-shadow: none;
+  }
+  .g3-card:not(.g3-card--intro) .g3-title { font-size: clamp(2.2rem, 3.6vw, 3.4rem); }
+  .g3-card:not(.g3-card--intro) .g3-meta,
+  .g3-card:not(.g3-card--intro) .g3-blurb { text-shadow: none; }
+  .g3-card:not(.g3-card--intro)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 1px solid rgba(var(--g3-shade), 0.9);
+    border-top: 2px solid var(--g3-ink);
+    background: rgba(var(--g3-shade), 0.8);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    backdrop-filter: blur(16px) saturate(1.1);
+    box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  :root[data-g3face]:not([data-g3walk]) .g3-stage:not(.is-walking) .g3-card.is-current:not(.g3-card--intro)::before {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.5s ease 0.05s, transform 0.6s var(--g3-ease) 0.05s;
+  }
+}

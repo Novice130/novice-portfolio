@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Frame from '@/components/gallery/Frame';
 import Vitrine from '@/components/gallery/Vitrine';
-import LightSwitch from '@/components/gallery/LightSwitch';
+import Gallery3D from '@/components/gallery3d/Gallery3D';
 import { centerpiece, pieces } from '@/data/gallery';
 
 export const metadata: Metadata = {
@@ -12,14 +12,8 @@ export const metadata: Metadata = {
 export default function GalleryPage() {
   return (
     <>
-      <header className="g-head">
-        <a href="/" className="g-mark">
-          Novice <span>Gallery</span>
-        </a>
-        <LightSwitch />
-      </header>
-
-      <main id="main">
+      {/* The walk mounts client-side; this markup is the flat catalogue and the no-JS page. */}
+      <Gallery3D>
         <section className="g-intro">
           <h1>
             Collected <em>works</em>
@@ -73,7 +67,7 @@ export default function GalleryPage() {
             ))}
           </ol>
         </section>
-      </main>
+      </Gallery3D>
 
       <footer className="g-foot">
         <a href="/school/">Room 2 — Novice Schools →</a>
