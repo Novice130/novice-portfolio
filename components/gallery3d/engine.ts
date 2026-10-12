@@ -120,6 +120,9 @@ function smoothDamp(s: Spring, to: number, time: number, dt: number, maxSpeed: n
 const readTheme = (): ThemeName => (document.documentElement.dataset.gtheme === 'dark' ? 'dark' : 'light');
 
 function pickQuality(): Quality {
+  // ?g3q=low|high forces a tier, for testing.
+  const forced = new URLSearchParams(window.location.search).get('g3q');
+  if (forced === 'low' || forced === 'high') return forced;
   const nav = navigator as Navigator & { deviceMemory?: number };
   const smallTouch =
     window.matchMedia('(pointer: coarse)').matches && Math.min(window.screen.width, window.screen.height) < 600;
@@ -190,6 +193,10 @@ export function createEngine(opts: EngineOptions): Engine {
     let hoverRaf = 0;
     let lost = false;
     let ready = false;
+    // ?g3debug exposes a frame counter and the renderer to the test scripts.
+    const debug = new URLSearchParams(window.location.search).has('g3debug');
+    let frameCount = 0;
+    if (debug) (window as unknown as { __g3?: unknown }).__g3 = { renderer };
 
     const invalidate = () => {
       if (!raf && !disposed && !lost && !document.hidden) raf = requestAnimationFrame(frame);
@@ -460,6 +467,7 @@ export function createEngine(opts: EngineOptions): Engine {
       if (place(dt)) busy = true;
       for (const part of parts) if (part.update?.(dt, elapsed, focus)) busy = true;
       renderer.render(scene, camera);
+      if (debug) canvas.dataset.g3frames = String(++frameCount);
 
       if (focus !== reported) {
         reported = focus;

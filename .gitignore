@@ -11,3 +11,4 @@ logs/
 *.db-wal
 out/
 .next/
+.stills/
