@@ -298,3 +298,55 @@ Each step leaves the site working and is committed on its own.
 7. Post chain.
 8. Bevels, skirting, picture rail, moulding depth.
 9. Tier step-down; README rewrite.
+
+## Revisions after reading the code (2026-10-13)
+
+Writing the implementation plan meant reading the scene code and the three.js
+passes line by line. Nine points in the design above did not survive that and
+are replaced as follows. Where this section disagrees with the text above, this
+section wins.
+
+1. **Arrow geometry.** While looking down the gallery the camera's vertical
+   field of view is 58 degrees with a level gaze, so the floor is only on
+   screen from about 3m ahead. An arrow on the floor beside a work is therefore
+   invisible from a stand point 1.8m before it. The stand point becomes 3.6m
+   before the work (it was 3.2m), and the arrow lies on the floor level with
+   the work, up to 2.4m from the centre line (closer in on narrow screens so it
+   stays in frame). Opacity is 0 beyond 6.4m from the work and 1 within 5.2m,
+   and it also fades out as the visitor walks past (work less than 2.6m ahead,
+   gone by 1.5m). The arrow is world-fixed, so it fades in over the last metre
+   and a half of the approach instead of popping in on arrival. It is clickable
+   only when the camera has settled and opacity is at least 0.3.
+2. **Wall plates stay at 3x.** Their textures already carry about eight times
+   the pixels the screen can show at 100%. The blur on zoom comes from the
+   pixel-ratio cap, which Part 2 fixes. Going to 4x would cost about 45 MB of
+   GPU memory for no visible gain.
+3. **Pixel ratio is capped by pixel count, not by ratio.** Browser zoom shrinks
+   the CSS size as it raises the device ratio, so rendering at the full device
+   ratio costs the same pixels as before. The high tier renders at the device
+   ratio times any pinch scale, up to 4, within 8 megapixels (12 while
+   pinch-zoomed). Slow frames step it down in 0.25 steps.
+4. **Glass and canvases keep their shaders.** The case panes, the shards and
+   the artwork canvases are custom shaders carrying the crack, glint, shatter,
+   passe-partout and picture-light effects. They gain a reflection of the baked
+   room cube map instead of being replaced with `MeshPhysicalMaterial`.
+5. **Five scanned sets, not nine.** Poly Haven has no clean gold or brass scan.
+   Gilt and brass keep their procedural relief and become true metals lit by
+   the room reflection. Stone, vault and dome share the plaster set. The sets
+   are `herringbone_parquet`, `marble_01`, `white_plaster_02`, `velour_velvet`
+   and `walnut_veneer`, stored as
+   `public/gallery/tex/<name>/{color,normal,rough}-{hi,lo}.webp`. Only the
+   corridor floor is 2K.
+6. **Screenshots bypass tone mapping.** A stock `OutputPass` would run ACES
+   over the artworks, labels, plaque, monitor, door image and sign, turning
+   white web pages grey. Those materials write alpha 0 and a custom final pass
+   tone-maps only where alpha is 1. Bloom is patched to leave alpha alone.
+7. **No sun shadow from frames.** The sun runs parallel to the corridor walls,
+   so it cannot cast a frame's shadow onto its wall. Frames keep their painted
+   contact shadow (now also shown at night) plus GTAO. The oculus light casts
+   real shadows in the salon.
+8. **Frame mouldings already have real depth** (a swept profile), so nothing is
+   added there.
+9. **Step-down trigger.** Eight consecutive frames over 24ms, at any time, not
+   only during the first walk. Order: pixel ratio above 2, then GTAO, then the
+   sun shadow map to 2048, then bloom.
