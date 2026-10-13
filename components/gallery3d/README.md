@@ -54,8 +54,6 @@ on open at that stop (a work's link opens facing the work).
 | `scene/artworks.ts` | The nine framed works: canvases, frames, wall labels, picture lights and their faked light pools. |
 | `scene/centerpiece.ts` | Apache Tandoori: plinth, screen, broken glass case, shards, rope, spotlight, one-shot shatter animation on arrival. |
 | `scene/navArrows.ts` | Street View floor markers, the mouse floor ring and the wall highlight square. Must stay the last factory in `engine.ts`. |
-| `scene/visitors.ts` | Two visitors and a cat guide, as stand-in figures until rigged models are supplied. |
-| `logic/visitors.ts` | Their behaviour on the floor plane; no three.js. |
 | `logic/arrowFade.ts` | Side arrow opacity, hit threshold, floor position. |
 | `logic/artworkTiers.ts` | Image URLs per tier; which works hold a 2400px texture. |
 | `logic/pixelRatio.ts` | Pixel ratio policy. |
@@ -69,7 +67,7 @@ on open at that stop (a work's link opens facing the work).
 | `app/(gallery)/gallery3d.css` | All 3D-mode styles, scoped under `.g3`. Later rules at the end of the file override earlier ones. |
 
 Each scene module exports one factory (`createRoom`, `createArtworks`,
-`createCenterpiece`, `createVisitors`, `createNavArrows`) returning a `ScenePart`:
+`createCenterpiece`, `createNavArrows`) returning a `ScenePart`:
 `{ group, hotspots?, setTheme, update?, dispose }`. The engine imports them
 dynamically, so three.js stays out of the initial bundle.
 
@@ -246,10 +244,6 @@ Worth knowing so they are not reintroduced:
 - The Tandoori logo on the plaque is 144px; supply a larger source.
 - The Apache Tandoori button still points to `view.learnnovice.com`. Change
   `centerpiece.href` in `data/gallery.ts` once the repository is public.
-- The visitors and the cat are grey stand-ins. Wanted: two dressed Mixamo
-  characters with idle and walking animations and one animated cat, in
-  `public/gallery/models/`; then replace `buildPerson` / `buildCat` in
-  `scene/visitors.ts`.
 - A 404 for `gallery/apache-tandoori.webp` is logged on load. It is the
   designed fallback to the JPEG and goes away with the capture above.
 - In the centre view there is no floor marker for going back (that direction is
