@@ -1,5 +1,5 @@
 // Stills at fixed stops in both themes, for before / after comparison.
-// Usage: node scripts/shots.mjs --out=.stills/baseline [--base=http://localhost:4173] [--q=low] [--center]
+// Usage: node scripts/shots.mjs --out=.stills/baseline [--base=http://localhost:4173] [--q=low] [--center] [--gpu]
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
@@ -35,7 +35,10 @@ const settle = async (page) => {
   }
 };
 
-const browser = await chromium.launch();
+// --gpu renders on the machine's GPU (macOS, Metal) instead of software GL: far quicker.
+const browser = await chromium.launch(
+  flag('gpu') ? { args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] } : {},
+);
 try {
   for (const theme of themes) {
     for (const stop of STOPS) {

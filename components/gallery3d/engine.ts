@@ -166,6 +166,7 @@ export function createEngine(opts: EngineOptions): Engine {
       track(import('./render/pipeline')),
     ]);
     if (disposed) return;
+    performance.mark('g3:modules');
     live = start(T, [room.createRoom, artworks.createArtworks, centerpiece.createCenterpiece, nav.createNavArrows], {
       matLib,
       envMod,
@@ -289,6 +290,7 @@ export function createEngine(opts: EngineOptions): Engine {
         const part = make(ctx);
         parts.push(part);
         scene.add(part.group);
+        performance.mark(`g3:built:${make.name}`);
       }
     } catch (err) {
       destroy();
@@ -610,10 +612,13 @@ export function createEngine(opts: EngineOptions): Engine {
       }
       if (!ready) {
         ready = true;
+        performance.mark('g3:first-frame');
         opts.onProgress?.(1);
-        requestAnimationFrame(() => {
+        // A task, not an animation frame: the next frames carry the reflection
+        // bake and late shader compiles, and the curtain should not wait for them.
+        setTimeout(() => {
           if (!disposed) opts.onReady?.();
-        });
+        }, 0);
       }
       if (busy) invalidate();
       else if (!raf) {

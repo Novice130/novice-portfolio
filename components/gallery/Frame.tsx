@@ -2,13 +2,13 @@ import type { CSSProperties } from 'react';
 import type { Piece } from '@/data/gallery';
 
 export default function Frame({ piece }: { piece: Piece }) {
-  const offsite = piece.href.startsWith('http');
   return (
     <a
       className={`frame frame--${piece.frame}`}
       href={piece.href}
       style={{ '--tilt': `${piece.tilt}deg` } as CSSProperties}
-      {...(offsite && { target: '_blank', rel: 'noopener' })}
+      target="_blank"
+      rel="noopener"
     >
       <svg className="frame-wire" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
         <path d="M12 40 L50 3 L88 40" vectorEffect="non-scaling-stroke" />

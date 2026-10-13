@@ -33,7 +33,9 @@ npm run textures       # re-download the scanned texture sets
 
 If `npx serve` fails, `python3 -m http.server 4173 --bind 127.0.0.1 --directory out`
 does the same job. The stills script takes `--base=http://127.0.0.1:4173`,
-`--only=citcd,centerpiece`, `--theme=light`, `--q=low` and `--post=noao,nograde`.
+`--only=citcd,centerpiece`, `--theme=light`, `--q=low`, `--post=noao,nograde`
+and `--gpu` (macOS: render on the real GPU instead of software GL, about ten
+times quicker).
 
 URL flags: `?g3q=low` or `?g3q=high` forces a tier. `?g3debug` exposes
 `window.__g3` (`renderer`, `camera`, `scene`, `stepDown()`) and a frame counter
@@ -159,6 +161,26 @@ Hotspot ids the shell understands: a stop id, `nav:next`, `nav:prev`,
 - Eight consecutive frames over 24ms step the high tier down: pixel ratio above
   2, then ambient occlusion, then the sun shadow map to 2048.
 
+### Loading and coming back
+
+- The curtain opens after the first drawn frame. Scanned textures, 2400px
+  artworks and the reflection bake arrive afterwards. `performance` marks
+  `g3:modules`, `g3:built:*` and `g3:first-frame` show where load time goes.
+- Measured on an Apple M4 from a local server: about 0.85s to the curtain
+  opening once the browser has compiled the shaders before, of which 0.2s is
+  building the scene and 0.2s the first frame. The very first visit on a
+  machine took about 8s, nearly all of it the GPU driver compiling 64 shader
+  programs; the browser caches them afterwards.
+- Every work opens in a new tab, including the ones hosted on this domain, so
+  the gallery is never unloaded by visiting one. Only the door to Room 2
+  navigates away.
+- After the first load in a tab, `sessionStorage.g3seen` makes the curtain skip
+  its opening sweep (`.g3-curtain.is-quick`), so a reload or a return from
+  Room 2 shows the room as soon as it is drawn. The hash restores the stop.
+- `public/_headers` gives `/_next/static/*` a one-year immutable cache and
+  `/gallery/*` one day plus stale-while-revalidate. Without it Cloudflare
+  serves everything `max-age=0, must-revalidate`.
+
 ## Tuning
 
 - **Walk feel**: `TUNING` in `engine.ts`. `smoothTime` (walk speed),
@@ -232,6 +254,10 @@ Worth knowing so they are not reintroduced:
   checked in headless Chromium (software GL) only, where frame times are too
   long to say anything about real cost. Full-resolution ambient occlusion about
   doubled the frame time there.
+- `public/_headers` on the deployed site (check the `Cache-Control` response
+  header after the next deploy), and whether the browser's back-forward cache
+  restores the page on return from Room 2: headless Chromium disables it.
+- The first-ever-visit shader compile time on anything but one Apple M4.
 - The automatic step-down under real slow frames. The order is unit-tested and
   each step was forced through `window.__g3.stepDown()`, but headless frames
   are longer than the 250ms hiccup limit, so the monitor never fired by itself.

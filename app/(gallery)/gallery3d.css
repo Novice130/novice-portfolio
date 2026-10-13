@@ -142,6 +142,12 @@
   transition: opacity 0.4s ease, transform 0.6s var(--g3-ease);
 }
 .g3-curtain.is-open .g3-curtain-body { opacity: 0; transform: translateY(-10px); }
+/* a return visit in the same tab: the curtain just gets out of the way */
+.g3-curtain.is-quick { transition: opacity 0.15s linear, visibility 0s 0.15s; }
+.g3-curtain.is-quick.is-open { opacity: 0; }
+.g3-curtain.is-quick .g3-curtain-panel,
+.g3-curtain.is-quick .g3-curtain-body { transition: none; }
+.g3-curtain.is-quick .g3-curtain-mark { animation: none; }
 .g3-curtain-mark {
   margin: 0;
   font: 500 clamp(2.25rem, 7vw, 4rem) / 1 var(--font-museum), Georgia, serif;

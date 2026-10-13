@@ -25,7 +25,9 @@ const WALK_DIM = 0.16;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const pad = (n: number) => String(n).padStart(2, '0');
-const isOffsite = (href: string) => /^https?:/.test(href);
+// Every work opens in a new tab, including the ones hosted on this domain, so
+// the gallery stays loaded behind it. Only the door to Room 2 leaves the page.
+const opensNewTab = (stop: { kind: string }) => stop.kind !== 'door';
 
 // Mirrors the pre-paint script in the layout, for arrivals by client-side navigation.
 function detectMode(): Mode {
@@ -52,6 +54,8 @@ export default function Gallery3D({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [progress, setProgress] = useState(0.06);
   const [open, setOpen] = useState(false);
+  // Coming back in the same tab (reload, back from Room 2): no opening ceremony.
+  const [quick, setQuick] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -59,6 +63,9 @@ export default function Gallery3D({ children }: { children: ReactNode }) {
     // Tells the layout's watchdog that the shell is alive and owns the mode now.
     if (root.dataset.g3 !== 'none') root.dataset.g3 = 'live';
     setMode(root.dataset.gmode === '3d' ? '3d' : 'flat');
+    try {
+      setQuick(sessionStorage.getItem('g3seen') === '1');
+    } catch {}
     return () => {
       delete root.dataset.gmode;
       delete root.dataset.g3;
@@ -83,7 +90,12 @@ export default function Gallery3D({ children }: { children: ReactNode }) {
     setMode(next);
   }, []);
 
-  const onReady = useCallback(() => setOpen(true), []);
+  const onReady = useCallback(() => {
+    setOpen(true);
+    try {
+      sessionStorage.setItem('g3seen', '1');
+    } catch {}
+  }, []);
   const onFail = useCallback(
     (err: unknown) => {
       console.warn('Gallery: 3D view unavailable, showing the list.', err);
@@ -114,7 +126,7 @@ export default function Gallery3D({ children }: { children: ReactNode }) {
 
       <main id="main">
         {mode === '3d' && <Walk onProgress={setProgress} onReady={onReady} onFail={onFail} />}
-        <div className={`g3-curtain${open ? ' is-open' : ''}`} role="status" aria-hidden={open}>
+        <div className={`g3-curtain${open ? ' is-open' : ''}${quick ? ' is-quick' : ''}`} role="status" aria-hidden={open}>
           <span className="g3-curtain-panel g3-curtain-panel--l" />
           <span className="g3-curtain-panel g3-curtain-panel--r" />
           <div className="g3-curtain-body">
@@ -257,7 +269,7 @@ function Walk({ onProgress, onReady, onFail }: WalkProps) {
         if (i !== shown || i !== cur) return go(i);
         const href = stops[i].href;
         if (!href) return;
-        if (isOffsite(href)) window.open(href, '_blank', 'noopener');
+        if (opensNewTab(stops[i])) window.open(href, '_blank', 'noopener');
         else window.location.assign(href);
       },
     });
@@ -547,7 +559,7 @@ function Caption({ stop, index, current, onFocus, onStart }: CaptionProps) {
           className="g3-cta g3-r"
           href={stop.href}
           aria-label={name}
-          {...(isOffsite(stop.href) && { target: '_blank', rel: 'noopener' })}
+          {...(opensNewTab(stop) && { target: '_blank', rel: 'noopener' })}
         >
           {label}
         </a>
