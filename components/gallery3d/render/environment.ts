@@ -32,9 +32,15 @@ const PROBE: Record<Zone, [number, number, number]> = {
 const FACE = 256;
 
 type Entry = { material: THREE.MeshStandardMaterial; options: RegisterOptions };
+// Two cube targets per zone. Custom shaders (artwork glazing, the glass case)
+// sample the unfiltered cube while the probes render, so a bake draws into the
+// target that is not handed out and swaps afterwards. Rendering into the one
+// being sampled is a GL feedback loop, and the draw calls involved are dropped.
 type ZoneState = {
-  target: THREE.WebGLCubeRenderTarget;
-  camera: THREE.CubeCamera;
+  targets: [THREE.WebGLCubeRenderTarget, THREE.WebGLCubeRenderTarget];
+  cameras: [THREE.CubeCamera, THREE.CubeCamera];
+  /** Index of the target holding the last finished bake; -1 before the first. */
+  front: number;
   filtered: THREE.WebGLRenderTarget | null;
   entries: Entry[];
 };
@@ -49,14 +55,19 @@ export function createEnvironment(
   let baked = false;
 
   const makeZone = (zone: Zone): ZoneState => {
-    const target = new THREE.WebGLCubeRenderTarget(FACE, {
-      type: THREE.HalfFloatType,
-      generateMipmaps: true,
-      minFilter: THREE.LinearMipmapLinearFilter,
-    });
-    const camera = new THREE.CubeCamera(0.1, 80, target);
-    camera.position.set(...PROBE[zone]);
-    return { target, camera, filtered: null, entries: [] };
+    const makeTarget = () =>
+      new THREE.WebGLCubeRenderTarget(FACE, {
+        type: THREE.HalfFloatType,
+        generateMipmaps: true,
+        minFilter: THREE.LinearMipmapLinearFilter,
+      });
+    const makeCamera = (target: THREE.WebGLCubeRenderTarget) => {
+      const camera = new THREE.CubeCamera(0.1, 80, target);
+      camera.position.set(...PROBE[zone]);
+      return camera;
+    };
+    const targets: ZoneState['targets'] = [makeTarget(), makeTarget()];
+    return { targets, cameras: [makeCamera(targets[0]), makeCamera(targets[1])], front: -1, filtered: null, entries: [] };
   };
   const zones: Record<Zone, ZoneState> = { corridor: makeZone('corridor'), salon: makeZone('salon') };
   const all = () => [...zones.corridor.entries, ...zones.salon.entries];
@@ -83,10 +94,12 @@ export function createEnvironment(
       all().forEach((e) => (e.material.envMapIntensity = 0));
       try {
         for (const state of Object.values(zones)) {
-          state.camera.update(renderer, scene);
-          const next = pmrem.fromCubemap(state.target.texture);
+          const back = state.front === 0 ? 1 : 0;
+          state.cameras[back].update(renderer, scene);
+          const next = pmrem.fromCubemap(state.targets[back].texture);
           state.filtered?.dispose();
           state.filtered = next;
+          state.front = back;
         }
         baked = true;
       } finally {
@@ -100,7 +113,7 @@ export function createEnvironment(
       zones[zone].entries.push(entry);
       if (baked) assign(zones[zone], entry);
     },
-    cube: (zone) => (baked ? zones[zone].target.texture : null),
+    cube: (zone) => (zones[zone].front < 0 ? null : zones[zone].targets[zones[zone].front].texture),
     onBake(listener) {
       listeners.push(listener);
     },
@@ -109,7 +122,7 @@ export function createEnvironment(
         state.entries.forEach((e) => (e.material.envMap = null));
         state.entries.length = 0;
         state.filtered?.dispose();
-        state.target.dispose();
+        state.targets.forEach((t) => t.dispose());
       }
       pmrem.dispose();
       listeners.length = 0;
