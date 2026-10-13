@@ -14,6 +14,7 @@ import {
   type ThemeName,
 } from '@/components/gallery3d/contract';
 import { centerpiece } from '@/data/gallery';
+import { artworkSources } from '../logic/artworkTiers';
 
 // ---------------------------------------------------------------- dimensions
 
@@ -737,7 +738,7 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
 
   const loader = new THREE.TextureLoader();
   let screenTex: THREE.Texture | null = null;
-  loader.load(centerpiece.image, (tex) => {
+  const screenArrived = (tex: THREE.Texture) => {
     if (disposed) {
       tex.dispose();
       return;
@@ -749,7 +750,11 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
     screenMat.color.set(0xffffff);
     screenMat.needsUpdate = true;
     ctx.invalidate();
-  });
+  };
+  const screenSrc = artworkSources(centerpiece.image);
+  loader.load(low ? screenSrc.small : screenSrc.large, screenArrived, undefined, () =>
+    loader.load(screenSrc.fallback, screenArrived),
+  );
 
   // ---- vitrine: brass profiles, four whole panes, one broken pane
 

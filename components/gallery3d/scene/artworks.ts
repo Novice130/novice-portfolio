@@ -17,6 +17,7 @@ import {
   type ThemeName,
 } from '@/components/gallery3d/contract';
 import { pieces, type FrameStyle, type Piece } from '@/data/gallery';
+import { artworkSources, planLarge, wantedLarge } from '../logic/artworkTiers';
 
 // ── Tunables ────────────────────────────────────────────────────────────────
 
@@ -659,6 +660,9 @@ type Painting = {
   sizeT: number;
   reveal: number;
   loaded: boolean;
+  small: THREE.Texture | null;
+  large: THREE.Texture | null;
+  largeLoading: boolean;
   near: number;
 };
 
@@ -713,6 +717,9 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
   const glowColor = new THREE.Color().setRGB(1, 0.74, 0.44);
   const shadowColor = new THREE.Color().setRGB(0.05, 0.04, 0.03);
   const picLight = new THREE.Color().setRGB(1, 0.84, 0.6);
+
+  const loader = new THREE.TextureLoader();
+  let tierKey = NaN;
 
   const paintings = pieces.map(buildPainting);
   const hotspots: Hotspot[] = paintings.map((p) => ({ object: p.hit, stopId: p.piece.id }));
@@ -819,6 +826,9 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
       sizeT: 1,
       reveal: 0,
       loaded: false,
+      small: null,
+      large: null,
+      largeLoading: false,
       near: nearness(index + 1),
     };
     applySize(painting, size[0], size[1]);
@@ -870,8 +880,15 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
 
   // ── Loading ───────────────────────────────────────────────────────────────
 
+  function prepare(tex: THREE.Texture): void {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = maxAniso;
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+  }
+
   function loadNearestFirst(): void {
-    const loader = new THREE.TextureLoader();
     const eye = ctx.camera.position;
     const queue = paintings.slice().sort((a, b) => a.root.position.distanceToSquared(eye) - b.root.position.distanceToSquared(eye));
     let cursor = 0;
@@ -879,36 +896,75 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
     const next = (): void => {
       if (disposed || cursor >= queue.length) return;
       const p = queue[cursor++];
-      loader.load(
-        p.piece.image,
-        (tex) => {
-          if (disposed) {
-            tex.dispose();
-            return;
-          }
-          track(tex);
-          tex.colorSpace = THREE.SRGBColorSpace;
-          tex.anisotropy = maxAniso;
-          tex.generateMipmaps = true;
-          tex.minFilter = THREE.LinearMipmapLinearFilter;
-          tex.magFilter = THREE.LinearFilter;
-          p.canvas.material.uniforms.map.value = tex;
-          p.loaded = true;
+      const src = artworkSources(p.piece.image);
+      const arrived = (tex: THREE.Texture): void => {
+        if (disposed) {
+          tex.dispose();
+          return;
+        }
+        track(tex);
+        prepare(tex);
+        p.small = tex;
+        p.canvas.material.uniforms.map.value = p.large ?? tex;
+        p.loaded = true;
 
-          const image = tex.image as { width?: number; height?: number } | undefined;
-          const aspect = image?.width && image?.height ? image.width / image.height : DEFAULT_ASPECT;
-          p.from = p.size;
-          p.to = fitSize(aspect);
-          p.sizeT = 0;
-          ctx.invalidate();
-          next();
-        },
-        undefined,
-        // A missing image leaves a primed canvas on the wall; keep the queue moving.
-        () => next(),
-      );
+        const image = tex.image as { width?: number; height?: number } | undefined;
+        const aspect = image?.width && image?.height ? image.width / image.height : DEFAULT_ASPECT;
+        p.from = p.size;
+        p.to = fitSize(aspect);
+        p.sizeT = 0;
+        ctx.invalidate();
+        next();
+      };
+      // No WebP (capture failed): the original JPEG. No JPEG either: a primed canvas stays on the wall.
+      loader.load(src.small, arrived, undefined, () => loader.load(src.fallback, arrived, undefined, () => next()));
     };
     for (let i = 0; i < CONCURRENT_LOADS; i++) next();
+  }
+
+  // ── 2400px tier ───────────────────────────────────────────────────────────
+
+  function syncLarge(focus: number): void {
+    const key = Math.round(focus);
+    if (key === tierKey) return;
+    tierKey = key;
+    const live = paintings.filter((p) => p.large || p.largeLoading).map((p) => p.index);
+    const { load, drop } = planLarge(live, wantedLarge(focus, paintings.length, ctx.quality));
+    for (const i of drop) dropLarge(paintings[i]);
+    for (const i of load) loadLarge(paintings[i]);
+  }
+
+  function dropLarge(p: Painting): void {
+    p.largeLoading = false;
+    if (!p.large) return;
+    // Never leave the canvas pointing at a disposed texture.
+    p.canvas.material.uniforms.map.value = p.small;
+    p.large.dispose();
+    p.large = null;
+    ctx.invalidate();
+  }
+
+  function loadLarge(p: Painting): void {
+    p.largeLoading = true;
+    loader.load(
+      artworkSources(p.piece.image).large,
+      (tex) => {
+        // Dropped, or already satisfied by an earlier request, while this one was in flight.
+        if (disposed || !p.largeLoading || p.large) {
+          tex.dispose();
+          return;
+        }
+        p.largeLoading = false;
+        prepare(tex);
+        p.large = tex;
+        if (p.loaded) p.canvas.material.uniforms.map.value = tex;
+        ctx.invalidate();
+      },
+      undefined,
+      () => {
+        p.largeLoading = false; // the 1200px image stays
+      },
+    );
   }
 
   // ── Theme and focus ───────────────────────────────────────────────────────
@@ -965,6 +1021,7 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
 
   function update(dt: number, _elapsed: number, focus: number): boolean {
     if (disposed) return false;
+    syncLarge(focus);
     // Clamped so a long idle gap between on-demand frames cannot skip a fade.
     const step = Math.min(Math.max(dt, 0), MAX_STEP);
     const ease = 1 - Math.exp(-step * FOCUS_RATE);
@@ -1001,6 +1058,10 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
   function dispose(): void {
     if (disposed) return;
     disposed = true;
+    for (const p of paintings) {
+      p.large?.dispose();
+      p.large = null;
+    }
     group.removeFromParent();
     group.clear();
     for (const item of disposables) item.dispose();
