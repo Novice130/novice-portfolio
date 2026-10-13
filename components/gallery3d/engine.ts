@@ -4,6 +4,7 @@
 import type * as THREE from 'three';
 import { EYE, SALON, stops, type Quality, type SceneCtx, type ScenePart, type ThemeName } from './contract';
 import { pickPixelRatio } from './logic/pixelRatio';
+import { FULL_BUDGET, createFrameMonitor, stepDown } from './logic/qualityStepDown';
 
 export const TUNING = {
   /** ACES exposure per room. */
@@ -514,9 +515,37 @@ export function createEngine(opts: EngineOptions): Engine {
       return gait > 0;
     };
 
+    let budget = FULL_BUDGET;
+    const monitor = createFrameMonitor();
+    const applyStepDown = () => {
+      const next = stepDown(budget, currentDpr);
+      if (!next) return;
+      if (next.dprPenalty !== budget.dprPenalty) {
+        dprPenalty = next.dprPenalty;
+        sized = '';
+        resize();
+      }
+      if (next.gtao !== budget.gtao) pipeline?.set({ gtao: next.gtao });
+      if (next.sunShadow !== budget.sunShadow) {
+        scene.traverse((o) => {
+          const light = o as THREE.DirectionalLight;
+          if (!light.isDirectionalLight || !light.castShadow) return;
+          light.shadow.mapSize.set(next.sunShadow, next.sunShadow);
+          light.shadow.map?.dispose();
+          light.shadow.map = null;
+        });
+        invalidateStatic();
+      }
+      budget = next;
+    };
+    // Lets the test scripts force a step without a slow GPU.
+    if (debug) Object.assign((window as unknown as { __g3: object }).__g3, { stepDown: applyStepDown });
+
     function frame(now: number) {
       raf = 0;
       if (disposed || lost) return;
+      // Only gaps between consecutive animation frames say anything about speed.
+      if (quality === 'high' && lastT && monitor.push(now - lastT)) applyStepDown();
       const dt = lastT ? clamp((now - lastT) / 1000, 0.001, 0.05) : 1 / 60;
       lastT = now;
       elapsed += dt;

@@ -11,11 +11,8 @@ over and face it.
 
 ## Status
 
-- Branch `gallery-home`. **Nothing from this work is committed.**
-- Changed: `app/(gallery)/layout.tsx`, `app/(gallery)/page.tsx`, `package.json`
-  (+ `three`, `@types/three`), `package-lock.json`.
-- New: `components/gallery3d/`, `app/(gallery)/gallery3d.css`.
-- `npm run build` and `npx tsc --noEmit -p .` both pass.
+- Branch `gallery-home`; all work is committed.
+- Gates: `npx tsc --noEmit -p .`, `npm test`, `npm run build`.
 - Not deployed. `wrangler.jsonc` already serves `./out` as a static-assets
   Worker (`learnnovice-portfolio`); the wrangler login on this machine has
   expired, so `npx wrangler login` is needed first. Then `npm run build` and
@@ -27,7 +24,21 @@ over and face it.
 ```
 npm run build          # static export to ./out
 npx serve out -l 4173  # http://localhost:4173
+npm test               # unit tests for logic/
+npm run shots -- --out=.stills/now            # stills at five stops, both themes
+npm run shots -- --out=.stills/now --center   # the same, on the centre line
+npm run capture        # recapture site screenshots (serve ./out on 4173 first)
+npm run textures       # re-download the scanned texture sets
 ```
+
+If `npx serve` fails, `python3 -m http.server 4173 --bind 127.0.0.1 --directory out`
+does the same job. The stills script takes `--base=http://127.0.0.1:4173`,
+`--only=citcd,centerpiece`, `--theme=light`, `--q=low` and `--post=noao,nograde`.
+
+URL flags: `?g3q=low` or `?g3q=high` forces a tier. `?g3debug` exposes
+`window.__g3` (`renderer`, `camera`, `scene`, `stepDown()`) and a frame counter
+on `canvas.dataset.g3frames`; with it, `&g3post=noao,nograde` switches parts of
+the post step off.
 
 `next dev` also works. Deep links: `/#citcd`, `/#centerpiece`, `/#door` and so
 on open at that stop (a work's link opens facing the work).
@@ -42,11 +53,23 @@ on open at that stop (a work's link opens facing the work).
 | `scene/room.ts` | Architecture and all general lighting: corridor, vault, skylight, salon, dome, doorway, procedural textures, fog, background. |
 | `scene/artworks.ts` | The nine framed works: canvases, frames, wall labels, picture lights and their faked light pools. |
 | `scene/centerpiece.ts` | Apache Tandoori: plinth, screen, broken glass case, shards, rope, spotlight, one-shot shatter animation on arrival. |
-| `scene/navArrows.ts` | Street View floor markers, the mouse floor ring and the wall highlight square. |
+| `scene/navArrows.ts` | Street View floor markers, the mouse floor ring and the wall highlight square. Must stay the last factory in `engine.ts`. |
+| `scene/visitors.ts` | Two visitors and a cat guide, as stand-in figures until rigged models are supplied. |
+| `logic/visitors.ts` | Their behaviour on the floor plane; no three.js. |
+| `logic/arrowFade.ts` | Side arrow opacity, hit threshold, floor position. |
+| `logic/artworkTiers.ts` | Image URLs per tier; which works hold a 2400px texture. |
+| `logic/pixelRatio.ts` | Pixel ratio policy. |
+| `logic/qualityStepDown.ts` | Slow-frame monitor and step-down order. |
+| `render/materialLibrary.ts` | Loads the scanned texture sets and applies them to materials. |
+| `render/environment.ts` | Bakes two room cube maps and assigns them to materials. |
+| `render/pipeline.ts` | High tier post step: ambient occlusion, vignette and grain over the direct render. |
+| `scripts/shots.mjs` | Before / after stills at fixed stops and themes. |
+| `scripts/capture-gallery.mjs` | Recaptures site screenshots at 2400px. |
+| `scripts/fetch-textures.mjs` | Downloads and converts the five Poly Haven sets. |
 | `app/(gallery)/gallery3d.css` | All 3D-mode styles, scoped under `.g3`. Later rules at the end of the file override earlier ones. |
 
 Each scene module exports one factory (`createRoom`, `createArtworks`,
-`createCenterpiece`, `createNavArrows`) returning a `ScenePart`:
+`createCenterpiece`, `createVisitors`, `createNavArrows`) returning a `ScenePart`:
 `{ group, hotspots?, setTheme, update?, dispose }`. The engine imports them
 dynamically, so three.js stays out of the initial bundle.
 
@@ -113,13 +136,30 @@ Hotspot ids the shell understands: a stop id, `nav:next`, `nav:prev`,
 ### Rendering
 
 - Render on demand: the rAF loop stops when the camera has settled and no part
-  reports it is animating. Verified at zero draw calls when idle.
-- No shadow maps, no environment map. At most three real lights in the room and
-  one in the centrepiece; everything else (picture-light pools, contact
-  shadows, the spotlight beam) is faked with shader terms and additive planes.
-- ACES tone mapping, sRGB output, device pixel ratio capped at 2 (1.5 on
-  low-end devices).
-- All surface textures are procedural canvases painted in `room.ts`.
+  reports it is animating (the centrepiece animates while within 1.5 stops).
+- Two tiers. High: scanned 1K / 2K materials, room reflections, static shadow
+  maps, post step, bevelled edges, 2400px artworks near the visitor. Low:
+  512px / 1K materials, room reflections, no shadow maps, no post step, painted
+  contact shadows, hard edges, 1200px artworks, pixel ratio at most 1.5.
+- Static bakes. Shadow maps and the two room cube maps (corridor, salon) render
+  at load, on a theme switch, when a surface texture arrives and when the
+  shatter ends. Parts ask for this with `ctx.invalidateStatic()`; the engine
+  coalesces requests to one bake per 250ms. The only per-frame shadow update is
+  the centrepiece spot during its two-second shatter.
+- Reflections show this room: `render/environment.ts` renders the gallery into
+  cube maps and hands the prefiltered result to every registered material.
+  Glass and artwork canvases sample the unfiltered cube in their own shaders.
+  Each zone has two cube targets; a bake draws into the one not handed out and
+  swaps. Reflection strength is scaled per theme (`TUNING.envScale`).
+- Post step (high tier): the scene is drawn straight to the canvas with the
+  renderer's ACES tone mapping, exactly as on the low tier. `GTAOPass` then
+  computes occlusion at full resolution from its own depth and normal pass, and
+  one full-screen draw multiplies occlusion, a vignette and a little grain over
+  the image. There is no off-screen colour target and no bloom.
+- Pixel ratio is capped by pixel count (8 megapixels, 12 while pinch-zoomed),
+  not by ratio, so browser zoom stays sharp at no extra cost.
+- Eight consecutive frames over 24ms step the high tier down: pixel ratio above
+  2, then ambient occlusion, then the sun shadow map to 2048.
 
 ## Tuning
 
@@ -133,7 +173,15 @@ Hotspot ids the shell understands: a stop id, `nav:next`, `nav:prev`,
   glow per theme), `NIGHT` / `DAY` at the top of `artworks.ts` (picture-light
   strength), `THEMES` in `centerpiece.ts` (spotlight).
 - **Floor markers**: constants at the top of `navArrows.ts`, palettes in
-  `PALETTES`.
+  `PALETTES`. Arrow fade and position in `logic/arrowFade.ts` (`ARROW_FADE`)
+  and `STAND_BACK` in `contract.ts`.
+- **Materials**: scale and sheen in the `lib.apply` calls in `scene/room.ts`.
+- **Reflections**: per material through `register(..., { intensity })`, per
+  theme through `TUNING.envScale` in `engine.ts`.
+- **Shadows**: bias on each light.
+- **Post step**: `AO_INTENSITY`, `VIGNETTE`, `GRAIN` and the `GTAOPass`
+  parameters in `render/pipeline.ts`.
+- **Pixel budget**: `DPR` in `logic/pixelRatio.ts`.
 
 ## Bugs fixed along the way
 
@@ -151,6 +199,23 @@ Worth knowing so they are not reintroduced:
   IIFEs without it throws before first paint.
 - `data-g3face` is refreshed in the scroll handler as well as in `go()`, or the
   caption never appears at stops reached by hash link or scrollbar.
+- The floor nearer than about 3m is off screen while looking down the gallery
+  (58 degree vertical field of view, level gaze). A floor marker must lie at
+  least `STAND_BACK` ahead of the camera or it cannot be seen.
+- `GTAOPass` re-renders the scene with a normal material, so glow planes,
+  glass and floor markers occlude unless hidden for that pass (`soft()` in
+  `render/pipeline.ts`).
+- Do not render the scene into an off-screen linear target for post effects.
+  The glow planes, light pools and decals are authored for blending in display
+  space; blended in linear light, the additive ones washed the salon wall from
+  deep red to pale pink and flattened the floor gloss. Ambient occlusion at
+  half resolution also left a ragged fringe beside pilasters.
+- Never render into a cube map that a shader in the scene is sampling. The
+  bake did, Chromium reported a feedback loop and silently dropped the artwork
+  and glass draws from the reflection. Hence the two targets per zone.
+- The reflection map is also bounce light. Registering materials without
+  lowering the ambient overexposes the room, and at night the lit works in the
+  bake lift every wall to grey unless `TUNING.envScale.dark` holds it down.
 
 ## Not yet verified
 
@@ -164,7 +229,14 @@ Worth knowing so they are not reintroduced:
   working.
 - The centrepiece and door stops under the Street View camera model, the list
   view toggle and the reduced-motion path after the later passes.
-- Night mode while facing a work, and the frosted caption panel in night mode.
+- The frosted caption panel in night mode.
+- The post step and shadow maps on integrated GPUs and on Safari / Firefox:
+  checked in headless Chromium (software GL) only, where frame times are too
+  long to say anything about real cost. Full-resolution ambient occlusion about
+  doubled the frame time there.
+- The automatic step-down under real slow frames. The order is unit-tested and
+  each step was forced through `window.__g3.stepDown()`, but headless frames
+  are longer than the 250ms hiccup limit, so the monitor never fired by itself.
 
 ## Open items
 
@@ -174,10 +246,12 @@ Worth knowing so they are not reintroduced:
 - The Tandoori logo on the plaque is 144px; supply a larger source.
 - The Apache Tandoori button still points to `view.learnnovice.com`. Change
   `centerpiece.href` in `data/gallery.ts` once the repository is public.
-- Source screenshots in `public/gallery/` are 1200px wide. Sampling is as sharp
-  as it can be; truly crisp canvases need recapturing at about 2400px.
-- At night the salon's red walls read near-black under the cool moonlight.
-  Warming the night light in `room.ts` would bring the colour back.
+- The visitors and the cat are grey stand-ins. Wanted: two dressed Mixamo
+  characters with idle and walking animations and one animated cat, in
+  `public/gallery/models/`; then replace `buildPerson` / `buildCat` in
+  `scene/visitors.ts`.
+- A 404 for `gallery/apache-tandoori.webp` is logged on load. It is the
+  designed fallback to the JPEG and goes away with the capture above.
 - In the centre view there is no floor marker for going back (that direction is
   behind the camera). `↓` and the HUD `←` cover it.
 - On desktop in light mode the rope stanchion can cross the centrepiece
