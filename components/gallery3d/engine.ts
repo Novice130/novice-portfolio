@@ -196,7 +196,7 @@ export function createEngine(opts: EngineOptions): Engine {
     // ?g3debug exposes a frame counter and the renderer to the test scripts.
     const debug = new URLSearchParams(window.location.search).has('g3debug');
     let frameCount = 0;
-    if (debug) (window as unknown as { __g3?: unknown }).__g3 = { renderer };
+    if (debug) (window as unknown as { __g3?: unknown }).__g3 = { renderer, camera, scene };
 
     const invalidate = () => {
       if (!raf && !disposed && !lost && !document.hidden) raf = requestAnimationFrame(frame);

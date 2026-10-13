@@ -85,6 +85,10 @@ export const DOOR = {
   href: '/school/',
 } as const;
 
+/** How far before a work, on the centre line, the visitor stops (m). The floor
+ *  level with the work must be in frame from here; see logic/arrowFade.ts. */
+export const STAND_BACK = 4;
+
 export const stops: Stop[] = [
   {
     id: 'intro',
@@ -101,7 +105,7 @@ export const stops: Stop[] = [
       id: p.id,
       kind: 'piece',
       pieceIndex: i,
-      aheadCam: [0, EYE, s.position[2] + 3.2],
+      aheadCam: [0, EYE, s.position[2] + STAND_BACK],
       // Facing the work: square on, from the far side of the centre line.
       cam: [-s.side * 2.5, EYE, s.position[2] + 0.3],
       look: [s.position[0], HANG.centerY - 0.1, s.position[2]],

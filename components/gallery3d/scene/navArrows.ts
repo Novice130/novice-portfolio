@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import {
   CORRIDOR,
   SALON,
+  STAND_BACK,
   pieceSlot,
   stops,
   type Hotspot,
@@ -13,6 +14,7 @@ import {
   type Stop,
   type ThemeName,
 } from '../contract';
+import { arrowFloorX, arrowHittable, arrowOpacity } from '../logic/arrowFade';
 
 const LAST = stops.length - 1;
 const ORDER = 30;
@@ -179,7 +181,8 @@ export function createNavArrows(ctx: SceneCtx): ScenePart {
   };
 
   const fwd = make(0.62, 0.62, true, 1, true);
-  const side = make(0.4, 0.4, true, 1, false);
+  // Lies on the floor level with the work (depth-tested, like the forward disc).
+  const side = make(0.4, 0.4, true, 1, true);
   const back = make(0.3, 0.34, false, 0.4, false);
   const fNext = make(0.3, 0.3, true, 1, false);
   const fPrev = make(0.3, 0.3, true, 1, false);
@@ -239,6 +242,9 @@ export function createNavArrows(ctx: SceneCtx): ScenePart {
   let lastKey = -1;
   let curIdx = 0;
   let curFacing = false;
+  let sideIdx = -1;
+  let sideVis = 0;
+  let sideAspect = NaN;
   const lastPos = new THREE.Vector3(NaN, NaN, NaN);
   const lastQuat = new THREE.Quaternion(NaN, NaN, NaN, NaN);
   let lastAspect = NaN;
@@ -254,12 +260,23 @@ export function createNavArrows(ctx: SceneCtx): ScenePart {
 
   const yawOf = (dx: number, dz: number) => Math.atan2(-dz, dx);
 
+  function placeSide(idx: number) {
+    sideIdx = idx;
+    sideAspect = ctx.camera.aspect;
+    const slot = pieceSlot(at(idx).pieceIndex ?? 0);
+    side.root.position.set(slot.side * arrowFloorX(sideAspect, STAND_BACK), FLOOR_Y, slot.position[2]);
+    // Chevron points at the wall the work hangs on.
+    side.root.rotation.y = yawOf(slot.side, 0);
+    side.chev.rotation.z = 0;
+    side.body.rotation.x = -Math.PI / 2;
+    side.root.updateMatrixWorld(true);
+  }
+
   function layout(idx: number, facing: boolean) {
     curIdx = idx;
     curFacing = facing;
     const s = at(idx);
     fwd.on = !facing && idx < LAST;
-    side.on = s.kind === 'piece' && !facing;
     // No back marker while looking ahead: that way lies behind the camera (the HUD arrow and \u2193 cover it).
     back.on = false;
     fNext.on = facing && idx < LAST;
@@ -316,15 +333,6 @@ export function createNavArrows(ctx: SceneCtx): ScenePart {
       back.root.rotation.y = yawOf(-fwdV.x, -fwdV.z);
       back.body.rotation.x = ARROW_TILT;
     }
-    if (side.on) {
-      // The floor beside the visitor is out of frame, so the turn marker hangs in view on the work's side.
-      const sg = pieceSlot(at(curIdx).pieceIndex ?? 0).side;
-      anchor(sg * lerp(0.5, 0.55, portrait), lerp(-0.56, -0.2, portrait), tmp);
-      side.root.position.copy(tmp);
-      side.root.rotation.y = yawOf(rightV.x, rightV.z);
-      side.chev.rotation.z = sg > 0 ? 0 : Math.PI;
-      side.body.rotation.x = ARROW_TILT;
-    }
     if (curFacing) {
       anchor(lerp(0.12, 0, portrait), lerp(-0.8, -0.26, portrait), tmp);
       const ns = rightV.z < 0 ? 1 : -1; // screen side (along right) that points toward -Z
@@ -341,13 +349,16 @@ export function createNavArrows(ctx: SceneCtx): ScenePart {
   function applyAll() {
     const shown = vis > 0.001;
     for (const m of markers) {
-      const v = m.on && shown;
-      m.root.visible = m.hit.visible = v;
+      // The side arrow is fixed in the world and fades by distance, not by settling.
+      const k = m === side ? sideVis : vis;
+      const v = m.on && k > 0.001;
+      m.root.visible = v;
+      m.hit.visible = v && (m !== side || (settled && arrowHittable(sideVis)));
       if (!v) continue;
       const base = pal.discA * m.dk;
-      m.discMat.opacity = (m.hover ? Math.min(0.8, base + 0.25) : base) * vis;
-      m.ringMat.opacity = pal.ringA * vis;
-      m.chevMat.opacity = pal.chevA * vis;
+      m.discMat.opacity = (m.hover ? Math.min(0.8, base + 0.25) : base) * k;
+      m.ringMat.opacity = pal.ringA * k;
+      m.chevMat.opacity = pal.chevA * k;
     }
     floorCur.visible = cur === 1 && shown;
     wallCur.visible = cur === 2 && shown;
@@ -488,6 +499,23 @@ export function createNavArrows(ctx: SceneCtx): ScenePart {
       setHoverTo(null);
     }
 
+    // Side arrow: belongs to the nearest work, fades with true distance to it.
+    const camNow = ctx.camera;
+    const wantIdx = at(idx).kind === 'piece' && !facing ? idx : -1;
+    if (wantIdx >= 0 && (wantIdx !== sideIdx || camNow.aspect !== sideAspect)) placeSide(wantIdx);
+    let sideTo = 0;
+    if (wantIdx >= 0) {
+      const slot = pieceSlot(at(wantIdx).pieceIndex ?? 0);
+      const ahead = camNow.position.z - slot.position[2];
+      sideTo = arrowOpacity(Math.hypot(camNow.position.x - slot.position[0], ahead), ahead, reduced);
+    }
+    if (reduced) sideVis = sideTo;
+    else {
+      sideVis += (sideTo - sideVis) * (1 - Math.exp(-dt * 12));
+      if (Math.abs(sideTo - sideVis) < 0.004) sideVis = sideTo;
+    }
+    side.on = sideVis > 0.001 || sideTo > 0;
+
     const target = nowSettled ? 1 : 0;
     if (reduced) vis = target;
     else if (vis !== target) {
@@ -495,7 +523,7 @@ export function createNavArrows(ctx: SceneCtx): ScenePart {
       vis = target > vis ? Math.min(target, vis + step) : Math.max(target, vis - step);
     }
     applyAll();
-    return vis !== target;
+    return vis !== target || sideVis !== sideTo;
   }
 
   function dispose() {
