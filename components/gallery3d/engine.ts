@@ -3,6 +3,7 @@
 // three scene modules, loaded here so three.js stays out of the first bundle.
 import type * as THREE from 'three';
 import { EYE, SALON, stops, type Quality, type SceneCtx, type ScenePart, type ThemeName } from './contract';
+import { pickPixelRatio } from './logic/pixelRatio';
 
 export const TUNING = {
   /** ACES exposure per room. */
@@ -18,8 +19,6 @@ export const TUNING = {
   viewShiftLandscape: 0.1,
   near: 0.1,
   far: 150,
-  dprLow: 1.5,
-  dprHigh: 2,
   /** Seconds the focus spring takes to (mostly) close the gap; a weighty, deliberate walk. */
   smoothTime: 0.75,
   /** Pre-filter on the scroll target (s): rounds the start of a walk into an S-curve yet follows a finger closely. */
@@ -490,12 +489,22 @@ export function createEngine(opts: EngineOptions): Engine {
 
     // ---- size --------------------------------------------------------------
 
+    let dprPenalty = 0;
+    let currentDpr = 1;
     let sized = '';
     const resize = () => {
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
       if (!w || !h) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, quality === 'low' ? TUNING.dprLow : TUNING.dprHigh);
+      const dpr = pickPixelRatio({
+        device: window.devicePixelRatio || 1,
+        viewportScale: window.visualViewport?.scale ?? 1,
+        quality,
+        cssWidth: w,
+        cssHeight: h,
+        penalty: dprPenalty,
+      });
+      currentDpr = dpr;
       const key = `${w}x${h}@${dpr}`;
       if (key === sized) return;
       sized = key;
@@ -612,6 +621,9 @@ export function createEngine(opts: EngineOptions): Engine {
     });
 
     // ---- lifecycle ---------------------------------------------------------
+
+    // Pinch zoom changes the visual viewport without resizing the canvas.
+    if (window.visualViewport) listen(window.visualViewport, 'resize', resize);
 
     listen(motion, 'change', () => {
       reduced = motion.matches;
