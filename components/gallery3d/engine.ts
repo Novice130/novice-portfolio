@@ -128,6 +128,10 @@ function pickQuality(): Quality {
   return (nav.hardwareConcurrency ?? 8) <= 4 || (nav.deviceMemory ?? 8) <= 4 || smallTouch ? 'low' : 'high';
 }
 
+type RenderModules = {
+  matLib: typeof import('./render/materialLibrary');
+};
+
 export function createEngine(opts: EngineOptions): Engine {
   const last = stops.length - 1;
   let disposed = false;
@@ -139,20 +143,23 @@ export function createEngine(opts: EngineOptions): Engine {
     let loaded = 0;
     const track = <M>(p: Promise<M>) =>
       p.then((m) => {
-        if (!disposed) opts.onProgress?.(0.12 + (0.6 * ++loaded) / 6);
+        if (!disposed) opts.onProgress?.(0.12 + (0.6 * ++loaded) / 7);
         return m;
       });
     opts.onProgress?.(0.12);
-    const [T, room, artworks, centerpiece, visitors, nav] = await Promise.all([
+    const [T, room, artworks, centerpiece, visitors, nav, matLib] = await Promise.all([
       track(import('three')),
       track(import('./scene/room')),
       track(import('./scene/artworks')),
       track(import('./scene/centerpiece')),
       track(import('./scene/visitors')),
       track(import('./scene/navArrows')),
+      track(import('./render/materialLibrary')),
     ]);
     if (disposed) return;
-    live = start(T, [room.createRoom, artworks.createArtworks, centerpiece.createCenterpiece, visitors.createVisitors, nav.createNavArrows]);
+    live = start(T, [room.createRoom, artworks.createArtworks, centerpiece.createCenterpiece, visitors.createVisitors, nav.createNavArrows], {
+      matLib,
+    });
   };
 
   boot().catch((err: unknown) => {
@@ -163,7 +170,7 @@ export function createEngine(opts: EngineOptions): Engine {
     opts.onError?.(err);
   });
 
-  function start(T: typeof THREE, factories: Factory[]): Live {
+  function start(T: typeof THREE, factories: Factory[], mods: RenderModules): Live {
     const { canvas } = opts;
     const quality = pickQuality();
     let theme = readTheme();
@@ -212,12 +219,15 @@ export function createEngine(opts: EngineOptions): Engine {
           part.dispose();
         } catch {}
       }
+      materials.dispose();
       renderer.dispose();
       // The canvas is thrown away with the walk; hand the GPU context back now.
       renderer.forceContextLoss();
     };
 
-    const ctx: SceneCtx = { renderer, scene, camera, theme, quality, invalidate };
+    const invalidateStatic = () => invalidate();
+    const materials = mods.matLib.createMaterialLibrary(renderer, quality, () => invalidateStatic());
+    const ctx: SceneCtx = { renderer, scene, camera, theme, quality, materials, invalidate, invalidateStatic };
     try {
       for (const make of factories) {
         const part = make(ctx);

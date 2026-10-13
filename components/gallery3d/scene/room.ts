@@ -1374,6 +1374,19 @@ export function createRoom(ctx: SceneCtx): ScenePart {
     },
   );
 
+  // --- Scanned materials ---------------------------------------------------
+  // Real sizes of the scans (m): parquet 3.4, marble 1.5, plaster 1.0, velvet 0.28.
+  const lib = ctx.materials;
+  lib.apply(floorMat, 'parquet', { repeat: [PARQUET_TILE / 3.4, PARQUET_TILE / 3.4], roughness: 0.7 });
+  // The scan's colour is a dirty grey; the wall keeps its own paint and takes only relief and sheen.
+  lib.apply(wallMat, 'plaster', { repeat: [PLASTER_TILE, PLASTER_TILE], keepMap: true, normalScale: 0.6 });
+  lib.apply(dadoMat, 'marble', { repeat: [DADO_TILE / 1.5, DADO_H / 1.5], color: 0x6e2c2a, roughness: 0.55 });
+  // Painted patterns stay as the colour; the scan supplies relief and sheen.
+  lib.apply(salonWallMat, 'velvet', { repeat: [damaskTile / 0.28, damaskTile / 0.28], keepMap: true, normalScale: 0.5 });
+  lib.apply(salonFloorMat, 'marble', { repeat: [(2 * R) / 1.5, (2 * R) / 1.5], keepMap: true, roughness: 0.45 });
+  lib.apply(vaultMat, 'plaster', { repeat: [1, 1], keepMap: true, normalScale: 0.5 });
+  lib.apply(domeMat, 'plaster', { repeat: [24, 5], keepMap: true, normalScale: 0.5 });
+
   // --- Assemble ------------------------------------------------------------
   addMesh(floorB.build(), floorMat);
   addMesh(wallB.build(), wallMat);

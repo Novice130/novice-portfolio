@@ -39,7 +39,7 @@ try {
       // A work's link opens facing it; --center steps back to the centre line.
       if (center && PIECES.has(stop)) {
         await page.keyboard.press('ArrowDown');
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(4000);
       }
       const file = path.join(out, `${theme}-${stop || 'intro'}${center && PIECES.has(stop) ? '-center' : ''}.png`);
       await page.screenshot({ path: file });

@@ -667,6 +667,7 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
   // ---- plinth, base step, contact shadow
 
   const plinthMat = own(new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.1 }));
+  ctx.materials.apply(plinthMat, 'marble', { repeat: [1.4, 0.7], roughness: 0.5 });
   const unitBox = own(new THREE.BoxGeometry(1, 1, 1));
 
   const plinth = add(new THREE.Mesh(unitBox, plinthMat));
@@ -1013,6 +1014,7 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
     new THREE.Vector3(0.22, ropeR + 0.004, POST.z + 0.42),
   ]);
   const ropeMat = own(new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 }));
+  ctx.materials.apply(ropeMat, 'velvet', { repeat: [24, 1], keepMap: true, normalScale: 0.8 });
   add(new THREE.Mesh(own(new THREE.TubeGeometry(ropeCurve, low ? 28 : 48, ropeR, low ? 6 : 8, false)), ropeMat));
 
   const ropeEnd = ropeCurve.getPoint(1);

@@ -769,7 +769,9 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
     const sweep = createSweep(profile);
     track(sweep.geometry);
     const frameUniforms: FrameUniforms = { uPicLight: { value: new THREE.Color(0, 0, 0) }, uPicHalfH: { value: 1 } };
-    hung.add(new THREE.Mesh(sweep.geometry, track(makeFrameMaterial(frameParams[piece.frame], frameUniforms))));
+    const frameMat = track(makeFrameMaterial(frameParams[piece.frame], frameUniforms));
+    if (piece.frame === 'walnut') ctx.materials.apply(frameMat, 'walnut', { repeat: [0.5, 1], roughness: 0.8 });
+    hung.add(new THREE.Mesh(sweep.geometry, frameMat));
 
     const hit = new THREE.Mesh(unitBox, hitMat);
     hit.name = `hotspot:${piece.id}`;

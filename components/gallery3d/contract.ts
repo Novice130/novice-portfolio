@@ -6,6 +6,7 @@
 // the Grande Galerie, which opens into a round salon holding the centrepiece.
 import type * as THREE from 'three';
 import { centerpiece, pieces } from '@/data/gallery';
+import type { MaterialLibrary } from './render/materialLibrary';
 
 export type ThemeName = 'light' | 'dark';
 export type Quality = 'low' | 'high';
@@ -147,8 +148,15 @@ export type SceneCtx = {
   camera: THREE.PerspectiveCamera;
   theme: ThemeName;
   quality: Quality;
+  /** Scanned texture sets. `apply` is async and leaves the material alone on failure. */
+  materials: MaterialLibrary;
   /** Call when async work (a texture arriving) needs a new frame. */
   invalidate: () => void;
+  /**
+   * Call when the static look changed (a surface texture arrived, the shatter
+   * ended): shadow maps and room reflections are rendered again, once.
+   */
+  invalidateStatic: () => void;
 };
 
 /** A clickable object. The controller raycasts these and walks to `stopId`. */
@@ -179,7 +187,9 @@ export type ScenePart = {
 //   artworks    — frames, canvases, wall labels, picture lights and their glow.
 //   centerpiece — plinth, screen, broken glass case, shards, rope, its own spot.
 //
-// Budget: no real-time shadow maps; at most 3 real lights in room, 0 in
-// artworks (fake the pools of light with emissive + additive planes), 1 in
-// centerpiece. Fake contact shadows with gradient planes. Share geometries and
-// materials. Target 60fps on a 2020 phone at devicePixelRatio 1.5.
+// Budget: shadow maps are static. They render at load, on a theme switch and
+// when a part calls ctx.invalidateStatic(); never per frame, except the
+// centrepiece spot during its two-second shatter. At most 3 real lights in
+// room, 0 in artworks (picture-light pools are additive planes), 1 in
+// centerpiece. Share geometries and materials. The low tier has no shadow maps
+// and no post chain and targets 60fps on a 2020 phone at devicePixelRatio 1.5.
