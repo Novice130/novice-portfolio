@@ -131,6 +131,7 @@ function pickQuality(): Quality {
 type RenderModules = {
   matLib: typeof import('./render/materialLibrary');
   envMod: typeof import('./render/environment');
+  post: typeof import('./render/pipeline');
 };
 
 export function createEngine(opts: EngineOptions): Engine {
@@ -144,11 +145,11 @@ export function createEngine(opts: EngineOptions): Engine {
     let loaded = 0;
     const track = <M>(p: Promise<M>) =>
       p.then((m) => {
-        if (!disposed) opts.onProgress?.(0.12 + (0.6 * ++loaded) / 8);
+        if (!disposed) opts.onProgress?.(0.12 + (0.6 * ++loaded) / 9);
         return m;
       });
     opts.onProgress?.(0.12);
-    const [T, room, artworks, centerpiece, visitors, nav, matLib, envMod] = await Promise.all([
+    const [T, room, artworks, centerpiece, visitors, nav, matLib, envMod, post] = await Promise.all([
       track(import('three')),
       track(import('./scene/room')),
       track(import('./scene/artworks')),
@@ -157,11 +158,13 @@ export function createEngine(opts: EngineOptions): Engine {
       track(import('./scene/navArrows')),
       track(import('./render/materialLibrary')),
       track(import('./render/environment')),
+      track(import('./render/pipeline')),
     ]);
     if (disposed) return;
     live = start(T, [room.createRoom, artworks.createArtworks, centerpiece.createCenterpiece, visitors.createVisitors, nav.createNavArrows], {
       matLib,
       envMod,
+      post,
     });
   };
 
@@ -216,6 +219,8 @@ export function createEngine(opts: EngineOptions): Engine {
       if (!raf && !disposed && !lost && !document.hidden) raf = requestAnimationFrame(frame);
     };
 
+    let pipeline: ReturnType<typeof mods.post.createPipeline> = null;
+
     const destroy = () => {
       cancelAnimationFrame(raf);
       cancelAnimationFrame(hoverRaf);
@@ -226,6 +231,7 @@ export function createEngine(opts: EngineOptions): Engine {
           part.dispose();
         } catch {}
       }
+      pipeline?.dispose();
       env?.dispose();
       materials.dispose();
       renderer.dispose();
@@ -285,6 +291,31 @@ export function createEngine(opts: EngineOptions): Engine {
 
     // createNavArrows is the last factory.
     navGroup = parts[parts.length - 1]?.group ?? null;
+    if (quality === 'high') {
+      try {
+        pipeline = mods.post.createPipeline(renderer, scene, camera);
+      } catch (err) {
+        console.warn('[gallery3d] post chain unavailable; rendering directly', err);
+      }
+    }
+    const lastCamPos = new T.Vector3(NaN, NaN, NaN);
+    const lastCamQuat = new T.Quaternion();
+    const draw = () => {
+      if (!pipeline) return renderer.render(scene, camera);
+      try {
+        pipeline.setMoving(!lastCamPos.equals(camera.position) || !lastCamQuat.equals(camera.quaternion));
+        lastCamPos.copy(camera.position);
+        lastCamQuat.copy(camera.quaternion);
+        pipeline.render();
+      } catch (err) {
+        // Same path the low tier takes; ACES is still set on the renderer for it.
+        console.warn('[gallery3d] post chain failed; rendering directly', err);
+        pipeline.dispose();
+        pipeline = null;
+        renderer.setRenderTarget(null);
+        renderer.render(scene, camera);
+      }
+    };
 
     // ---- the rail ----------------------------------------------------------
 
@@ -531,7 +562,7 @@ export function createEngine(opts: EngineOptions): Engine {
           refreshStatic();
         } else busy = true;
       }
-      renderer.render(scene, camera);
+      draw();
       if (debug) canvas.dataset.g3frames = String(++frameCount);
 
       if (focus !== reported) {
@@ -575,6 +606,7 @@ export function createEngine(opts: EngineOptions): Engine {
       sized = key;
       renderer.setPixelRatio(dpr);
       renderer.setSize(w, h, false);
+      pipeline?.setSize(w, h, dpr);
       const aspect = w / h;
       const portrait = smoother(
         clamp((TUNING.aspectLandscape - aspect) / (TUNING.aspectLandscape - TUNING.aspectPortrait), 0, 1),
