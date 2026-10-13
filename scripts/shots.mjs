@@ -14,6 +14,8 @@ const base = arg('base', 'http://localhost:4173');
 const out = arg('out', '.stills/current');
 const quality = arg('q', '');
 const center = flag('center');
+// --post=noao,nograde switches post parts off (high tier only).
+const post = arg('post', '');
 // --only=citcd,centerpiece and --theme=light narrow the run ('intro' is the first stop).
 const only = arg('only', '').split(',').filter(Boolean);
 const themes = arg('theme', 'light,dark').split(',');
@@ -47,7 +49,7 @@ try {
         localStorage.removeItem('gmode');
       }, theme);
       const page = await context.newPage();
-      const query = `?g3debug${quality ? `&g3q=${quality}` : ''}`;
+      const query = `?g3debug${quality ? `&g3q=${quality}` : ''}${post ? `&g3post=${post}` : ''}`;
       await page.goto(`${base}/${query}${stop ? `#${stop}` : ''}`);
       await page.waitForSelector('html[data-g3="live"]', { timeout: 30000 });
       // The centrepiece animates by design and never goes idle: a fixed wait there.
@@ -60,7 +62,7 @@ try {
         await settle(page);
       }
       const file = path.join(out, `${theme}-${stop || 'intro'}${center && PIECES.has(stop) ? '-center' : ''}.png`);
-      await page.screenshot({ path: file });
+      await page.screenshot({ path: file, timeout: 120000 });
       console.log(file);
       await context.close();
     }

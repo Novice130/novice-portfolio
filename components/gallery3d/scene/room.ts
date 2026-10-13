@@ -14,7 +14,6 @@ import {
   type SceneCtx,
   type ThemeName,
 } from '@/components/gallery3d/contract';
-import { markUnlit } from '@/components/gallery3d/render/unlit';
 
 // ---------------------------------------------------------------------------
 // Layout
@@ -903,8 +902,8 @@ export function createRoom(ctx: SceneCtx): ScenePart {
   const oculusPoolMat = mat(new THREE.MeshBasicMaterial({ ...glow, map: radialTex }));
   const doorGlowMat = mat(new THREE.MeshBasicMaterial({ ...glow, map: radialTex, color: 0xffe2b0 }));
   const aoMat = mat(new THREE.MeshBasicMaterial({ ...decal, map: rampTex, color: 0x000000 }));
-  const doorMat = mat(markUnlit(new THREE.MeshBasicMaterial({ color: 0xf2d9a6, toneMapped: false })));
-  const signMat = mat(markUnlit(new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false })));
+  const doorMat = mat(new THREE.MeshBasicMaterial({ color: 0xf2d9a6, toneMapped: false }));
+  const signMat = mat(new THREE.MeshBasicMaterial({ map: signTex, toneMapped: false }));
 
   // --- Builders ------------------------------------------------------------
   const floorB = new MeshBuilder();

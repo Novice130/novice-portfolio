@@ -17,6 +17,8 @@ export type RegisterOptions = {
 
 export type Environment = {
   bake(): void;
+  /** Multiplies every registered material's reflection strength (per theme). */
+  setScale(scale: number): void;
   register(material: THREE.MeshStandardMaterial, zone: Zone, options?: RegisterOptions): void;
   /** Unfiltered cube map for custom shaders; null until the first bake. */
   cube(zone: Zone): THREE.CubeTexture | null;
@@ -53,6 +55,7 @@ export function createEnvironment(
   const pmrem = new THREE.PMREMGenerator(renderer);
   const listeners: Array<() => void> = [];
   let baked = false;
+  let scale = 1;
 
   const makeZone = (zone: Zone): ZoneState => {
     const makeTarget = () =>
@@ -77,7 +80,7 @@ export function createEnvironment(
     const { material, options } = entry;
     const first = !material.envMap;
     material.envMap = state.filtered.texture;
-    material.envMapIntensity = options.intensity ?? 1;
+    material.envMapIntensity = (options.intensity ?? 1) * scale;
     if (first) {
       if (options.metalness !== undefined) material.metalness = options.metalness;
       if (options.roughness !== undefined) material.roughness = options.roughness;
@@ -107,6 +110,10 @@ export function createEnvironment(
         for (const state of Object.values(zones)) state.entries.forEach((e) => assign(state, e));
       }
       listeners.forEach((fn) => fn());
+    },
+    setScale(next) {
+      scale = next;
+      for (const state of Object.values(zones)) state.entries.forEach((e) => assign(state, e));
     },
     register(material, zone, options = {}) {
       const entry = { material, options };

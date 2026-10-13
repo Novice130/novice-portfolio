@@ -15,7 +15,6 @@ import {
 } from '@/components/gallery3d/contract';
 import { centerpiece } from '@/data/gallery';
 import { artworkSources } from '../logic/artworkTiers';
-import { markUnlit } from '../render/unlit';
 
 // ---------------------------------------------------------------- dimensions
 
@@ -718,7 +717,7 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
   slab.scale.set(SCREEN.w + 0.06, SCREEN.h + 0.06, 0.04);
   slab.position.y = SCREEN.h / 2 + 0.03;
 
-  const screenMat = own(markUnlit(new THREE.MeshBasicMaterial({ color: 0x11161c, toneMapped: false })));
+  const screenMat = own(new THREE.MeshBasicMaterial({ color: 0x11161c, toneMapped: false }));
   const screen = add(new THREE.Mesh(flatPlane, screenMat), panel);
   screen.scale.set(SCREEN.w, SCREEN.h, 1);
   screen.position.set(0, SCREEN.h / 2 + 0.03, 0.0215);
@@ -1059,7 +1058,7 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
   const plaqueTex = own(new THREE.CanvasTexture(plaqueCanvas));
   plaqueTex.colorSpace = THREE.SRGBColorSpace;
   plaqueTex.anisotropy = maxAnisotropy;
-  const plaqueMat = own(markUnlit(new THREE.MeshBasicMaterial({ map: plaqueTex, toneMapped: false })));
+  const plaqueMat = own(new THREE.MeshBasicMaterial({ map: plaqueTex, toneMapped: false }));
   const plaqueFace = add(new THREE.Mesh(flatPlane, plaqueMat), plaque);
   plaqueFace.scale.set(PLAQUE.w, PLAQUE.h, 1);
   plaqueFace.position.z = 0.0165;

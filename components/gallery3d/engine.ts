@@ -8,6 +8,11 @@ import { pickPixelRatio } from './logic/pixelRatio';
 export const TUNING = {
   /** ACES exposure per room. */
   exposure: { light: 1.0, dark: 1.0 },
+  /**
+   * Strength of the baked room reflections per room. At night the lit works
+   * dominate the bake and would lift every wall to grey at full strength.
+   */
+  envScale: { light: 1.0, dark: 0.45 },
   /** Vertical FOV, blended by aspect ratio between the two breakpoints. */
   fovLandscape: 50,
   fovPortrait: 76,
@@ -251,6 +256,7 @@ export function createEngine(opts: EngineOptions): Engine {
     try {
       // Floor markers and cursors must not appear in reflections.
       env = mods.envMod.createEnvironment(renderer, scene, () => (navGroup ? [navGroup] : []));
+      env.setScale(TUNING.envScale[theme]);
     } catch (err) {
       console.warn('[gallery3d] room reflections unavailable', err);
     }
@@ -298,6 +304,11 @@ export function createEngine(opts: EngineOptions): Engine {
         console.warn('[gallery3d] post chain unavailable; rendering directly', err);
       }
     }
+    // ?g3debug&g3post=noao,nograde switches parts off, to tell their effects apart in stills.
+    if (debug && pipeline) {
+      const off = (new URLSearchParams(window.location.search).get('g3post') ?? '').split(',');
+      pipeline.set({ gtao: !off.includes('noao'), grade: !off.includes('nograde') });
+    }
     const lastCamPos = new T.Vector3(NaN, NaN, NaN);
     const lastCamQuat = new T.Quaternion();
     const draw = () => {
@@ -308,7 +319,7 @@ export function createEngine(opts: EngineOptions): Engine {
         lastCamQuat.copy(camera.quaternion);
         pipeline.render();
       } catch (err) {
-        // Same path the low tier takes; ACES is still set on the renderer for it.
+        // Same path the low tier takes.
         console.warn('[gallery3d] post chain failed; rendering directly', err);
         pipeline.dispose();
         pipeline = null;
@@ -636,6 +647,7 @@ export function createEngine(opts: EngineOptions): Engine {
       theme = next;
       ctx.theme = next;
       renderer.toneMappingExposure = TUNING.exposure[next];
+      env?.setScale(TUNING.envScale[next]);
       for (const part of parts) part.setTheme(next);
       invalidateStatic();
     };

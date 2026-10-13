@@ -18,7 +18,6 @@ import {
 } from '@/components/gallery3d/contract';
 import { pieces, type FrameStyle, type Piece } from '@/data/gallery';
 import { artworkSources, planLarge, wantedLarge } from '../logic/artworkTiers';
-import { markUnlit } from '../render/unlit';
 
 // ── Tunables ────────────────────────────────────────────────────────────────
 
@@ -301,8 +300,7 @@ void main() {
   #ifdef USE_FOG
     col = mix(col, fogColor, fogMix());
   #endif
-  // Alpha 0: the post chain leaves this pixel's colour as authored (see render/unlit.ts).
-  gl_FragColor = vec4(col, 0.0);
+  gl_FragColor = vec4(col, 1.0);
   #include <colorspace_fragment>
 }`;
 
@@ -738,7 +736,7 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
   const tagTex = track(new THREE.CanvasTexture(drawTag(high ? 2 : 1)));
   tagTex.colorSpace = THREE.SRGBColorSpace;
   tagTex.anisotropy = maxAniso;
-  const tagMat = track(markUnlit(new THREE.MeshBasicMaterial({ map: tagTex, toneMapped: false })));
+  const tagMat = track(new THREE.MeshBasicMaterial({ map: tagTex, toneMapped: false }));
 
   const glowColor = new THREE.Color().setRGB(1, 0.58, 0.26);
   const shadowColor = new THREE.Color().setRGB(0.05, 0.04, 0.03);
@@ -836,7 +834,7 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
     const labelTex = track(new THREE.CanvasTexture(drawLabel(piece, labelScale)));
     labelTex.colorSpace = THREE.SRGBColorSpace;
     labelTex.anisotropy = maxAniso;
-    const label = new THREE.Mesh(unitPlane, track(markUnlit(new THREE.MeshBasicMaterial({ map: labelTex, toneMapped: false }))));
+    const label = new THREE.Mesh(unitPlane, track(new THREE.MeshBasicMaterial({ map: labelTex, toneMapped: false })));
     label.scale.set(LABEL_W, LABEL_H, 1);
     root.add(label);
 
@@ -1051,8 +1049,7 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
     theme = next;
     const dark = next === 'dark';
     if (dark) {
-      // Above 1 on the high tier: the lamp is an emitter and feeds the bloom pass.
-      lampMat.color.setRGB(1, 0.86, 0.62).multiplyScalar(high ? 3.2 : 1);
+      lampMat.color.setRGB(1, 0.86, 0.62);
       fixtureMat.emissive.setRGB(0.1, 0.07, 0.03);
       tagMat.color.setRGB(0.6, 0.52, 0.4);
     } else {

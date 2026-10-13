@@ -1,113 +1,78 @@
-// Post chain for the high tier: ambient occlusion, bloom, then a grade pass
-// that tone-maps lit pixels only and adds a touch of grain and vignette.
+// Post step for the high tier. The scene is drawn straight to the canvas, as on
+// the low tier, so colours, blending and antialiasing are identical. Ambient
+// occlusion is then computed from a separate depth and normal pass and
+// multiplied over the finished image, together with a vignette and a touch of
+// grain, in one full-screen draw.
+//
+// The scene is deliberately not rendered into an off-screen linear target: the
+// glow planes, light pools and decals are authored for blending in display
+// space, and in linear light the additive ones wash out dark surfaces.
 import * as THREE from 'three';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
-import { FullScreenQuad, Pass } from 'three/examples/jsm/postprocessing/Pass.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 
 export type Pipeline = {
   render(): void;
   setSize(width: number, height: number, pixelRatio: number): void;
   /** Grain animates only while the camera moves, so a settled view is a still image. */
   setMoving(moving: boolean): void;
-  set(options: { gtao?: boolean; bloom?: boolean }): void;
+  set(options: { gtao?: boolean; grade?: boolean }): void;
   dispose(): void;
 };
 
-const GRADE_VERTEX = /* glsl */ `
+const OVERLAY_VERTEX = /* glsl */ `
   precision highp float;
-  uniform mat4 modelViewMatrix;
-  uniform mat4 projectionMatrix;
   attribute vec3 position;
   attribute vec2 uv;
   varying vec2 vUv;
   void main() {
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_Position = vec4(position.xy, 0.0, 1.0);
   }`;
 
-// Raw shader, like three's OutputShader: a normal ShaderMaterial would have the
-// renderer's own tone mapping injected a second time when drawing to the screen.
-const GRADE_FRAGMENT = /* glsl */ `
+// Drawn with blending "2 * source * destination": 0.5 leaves the image as it
+// is, less darkens, more brightens. That lets one draw carry occlusion and the
+// vignette (both darken) and the grain (either way).
+const OVERLAY_FRAGMENT = /* glsl */ `
   precision highp float;
-  uniform sampler2D tDiffuse;
-  uniform float uContrast;
+  uniform sampler2D tAo;
+  uniform float uAo;
   uniform float uVignette;
   uniform float uGrain;
   uniform float uSeed;
-  #include <tonemapping_pars_fragment>
-  #include <colorspace_pars_fragment>
   varying vec2 vUv;
   float hash(vec2 p) {
     return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
   }
   void main() {
-    vec4 texel = texture2D(tDiffuse, vUv);
-    // Alpha 1: lit surface, tone-mapped. Alpha 0: screenshot or label, shown as authored.
-    float lit = clamp(texel.a, 0.0, 1.0);
-    vec3 mapped = sRGBTransferOETF(vec4(ACESFilmicToneMapping(texel.rgb), 1.0)).rgb;
-    mapped = clamp((mapped - 0.5) * uContrast + 0.5, 0.0, 1.0);
-    vec3 plain = sRGBTransferOETF(vec4(clamp(texel.rgb, 0.0, 1.0), 1.0)).rgb;
-    vec3 color = mix(plain, mapped, lit);
-    color *= 1.0 - uVignette * smoothstep(0.45, 1.0, length(vUv - 0.5) * 1.4);
-    color += (hash(gl_FragCoord.xy + uSeed) - 0.5) * uGrain;
-    gl_FragColor = vec4(color, 1.0);
+    float gain = mix(1.0, texture2D(tAo, vUv).r, uAo);
+    gain *= 1.0 - uVignette * smoothstep(0.45, 1.0, length(vUv - 0.5) * 1.4);
+    gain += (hash(gl_FragCoord.xy + uSeed) - 0.5) * uGrain;
+    gl_FragColor = vec4(vec3(0.5 * gain), 1.0);
   }`;
 
-class GradePass extends Pass {
-  readonly uniforms = {
-    tDiffuse: { value: null as THREE.Texture | null },
-    toneMappingExposure: { value: 1 },
-    uContrast: { value: 1.05 },
-    uVignette: { value: 0.16 },
-    uGrain: { value: 0.02 },
-    uSeed: { value: 0 },
-  };
-  private readonly material = new THREE.RawShaderMaterial({
-    name: 'GalleryGrade',
-    uniforms: this.uniforms,
-    vertexShader: GRADE_VERTEX,
-    fragmentShader: GRADE_FRAGMENT,
-  });
-  private readonly quad = new FullScreenQuad(this.material);
-
-  render(renderer: THREE.WebGLRenderer, writeBuffer: THREE.WebGLRenderTarget, readBuffer: THREE.WebGLRenderTarget) {
-    this.uniforms.tDiffuse.value = readBuffer.texture;
-    this.uniforms.toneMappingExposure.value = renderer.toneMappingExposure;
-    renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
-    this.quad.render(renderer);
-  }
-
-  dispose() {
-    this.material.dispose();
-    this.quad.dispose();
-  }
-}
+const AO_INTENSITY = 0.7;
+const VIGNETTE = 0.16;
+const GRAIN = 0.02;
 
 export function createPipeline(
   renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
   camera: THREE.PerspectiveCamera,
 ): Pipeline | null {
-  // Without float colour buffers the half-float target is incomplete and renders black, silently.
+  // GTAOPass keeps normals in a half-float target; without float colour buffers it is incomplete.
   if (!renderer.extensions.has('EXT_color_buffer_float') && !renderer.extensions.has('EXT_color_buffer_half_float')) {
     return null;
   }
   const size = renderer.getDrawingBufferSize(new THREE.Vector2());
-  // The chain bypasses the canvas's own antialiasing, so the scene target is multisampled.
-  const target = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: 4 });
-  const composer = new EffectComposer(renderer, target);
-  composer.addPass(new RenderPass(scene, camera));
-
-  const gtao = new GTAOPass(scene, camera, Math.max(1, size.x >> 1), Math.max(1, size.y >> 1));
+  // Full resolution: at half size the occlusion beside a pilaster or frame edge
+  // lands a pixel off the edge and reads as a ragged dark fringe.
+  const whole = (n: number) => Math.max(1, Math.floor(n));
+  const gtao = new GTAOPass(scene, camera, whole(size.x), whole(size.y));
   gtao.updateGtaoMaterial({ radius: 0.5, distanceExponent: 1.5, thickness: 1, scale: 1.1, samples: 12, screenSpaceRadius: false });
   gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
-  gtao.blendIntensity = 0.85;
-  // Half resolution: occlusion is low-frequency and the denoise pass hides the difference.
-  const fullSize = gtao.setSize.bind(gtao);
-  gtao.setSize = (w: number, h: number) => fullSize(Math.max(1, w >> 1), Math.max(1, h >> 1));
+  // Compute only; the overlay below does the compositing.
+  gtao.output = GTAOPass.OUTPUT.Off;
   // GTAOPass renders the scene again with a normal material. Glow planes, glass,
   // floor markers and hit targets must not occlude: hide everything that is not
   // an opaque surface for that pass.
@@ -132,46 +97,63 @@ export function createPipeline(
     hiddenForAo.forEach((visible, o) => (o.visible = visible));
     hiddenForAo.clear();
   };
-  composer.addPass(gtao);
 
-  // Threshold above 1: only emitters (lamps, skylight, door glow) bloom, never a white web page.
-  const bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.22, 0.6, 1.15);
-  // Add light without touching alpha, which carries the lit / unlit mask.
-  const blend = bloom.blendMaterial;
-  blend.blending = THREE.CustomBlending;
-  blend.blendEquation = THREE.AddEquation;
-  blend.blendSrc = THREE.OneFactor;
-  blend.blendDst = THREE.OneFactor;
-  blend.blendSrcAlpha = THREE.ZeroFactor;
-  blend.blendDstAlpha = THREE.OneFactor;
-  composer.addPass(bloom);
-
-  const grade = new GradePass();
-  composer.addPass(grade);
+  const uniforms = {
+    tAo: { value: gtao.pdRenderTarget.texture as THREE.Texture },
+    uAo: { value: AO_INTENSITY },
+    uVignette: { value: VIGNETTE },
+    uGrain: { value: GRAIN },
+    uSeed: { value: 0 },
+  };
+  const overlayMaterial = new THREE.RawShaderMaterial({
+    name: 'GalleryOverlay',
+    uniforms,
+    vertexShader: OVERLAY_VERTEX,
+    fragmentShader: OVERLAY_FRAGMENT,
+    depthTest: false,
+    depthWrite: false,
+    transparent: true,
+    blending: THREE.CustomBlending,
+    blendEquation: THREE.AddEquation,
+    blendSrc: THREE.DstColorFactor,
+    blendDst: THREE.SrcColorFactor,
+  });
+  const overlay = new FullScreenQuad(overlayMaterial);
 
   let moving = false;
+  let ao = true;
+  let grade = true;
   return {
     render() {
-      if (moving) grade.uniforms.uSeed.value = (grade.uniforms.uSeed.value + 1.618) % 97;
-      composer.render();
+      renderer.setRenderTarget(null);
+      renderer.render(scene, camera);
+      if (!ao && !grade) return;
+      // Output is off, so the pass touches neither buffer.
+      if (ao) gtao.render(renderer, null as never, null as never, 0, false);
+      if (moving) uniforms.uSeed.value = (uniforms.uSeed.value + 1.618) % 97;
+      uniforms.uAo.value = ao ? AO_INTENSITY : 0;
+      uniforms.uVignette.value = grade ? VIGNETTE : 0;
+      uniforms.uGrain.value = grade ? GRAIN : 0;
+      const autoClear = renderer.autoClear;
+      renderer.autoClear = false;
+      renderer.setRenderTarget(null);
+      overlay.render(renderer);
+      renderer.autoClear = autoClear;
     },
     setSize(width, height, pixelRatio) {
-      composer.setPixelRatio(pixelRatio);
-      composer.setSize(width, height);
+      gtao.setSize(whole(width * pixelRatio), whole(height * pixelRatio));
     },
     setMoving(next) {
       moving = next;
     },
     set(options) {
-      if (options.gtao !== undefined) gtao.enabled = options.gtao;
-      if (options.bloom !== undefined) bloom.enabled = options.bloom;
+      if (options.gtao !== undefined) ao = options.gtao;
+      if (options.grade !== undefined) grade = options.grade;
     },
     dispose() {
       gtao.dispose();
-      bloom.dispose();
-      grade.dispose();
-      composer.dispose();
-      target.dispose();
+      overlayMaterial.dispose();
+      overlay.dispose();
     },
   };
 }
