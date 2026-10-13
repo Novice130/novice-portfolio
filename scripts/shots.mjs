@@ -14,7 +14,10 @@ const base = arg('base', 'http://localhost:4173');
 const out = arg('out', '.stills/current');
 const quality = arg('q', '');
 const center = flag('center');
-const STOPS = ['', 'citcd', 'phet-remaster', 'centerpiece', 'door'];
+// --only=citcd,centerpiece and --theme=light narrow the run ('intro' is the first stop).
+const only = arg('only', '').split(',').filter(Boolean);
+const themes = arg('theme', 'light,dark').split(',');
+const STOPS = ['', 'citcd', 'phet-remaster', 'centerpiece', 'door'].filter((s) => !only.length || only.includes(s || 'intro'));
 const PIECES = new Set(['citcd', 'phet-remaster']);
 
 await mkdir(out, { recursive: true });
@@ -32,7 +35,7 @@ const settle = async (page) => {
 
 const browser = await chromium.launch();
 try {
-  for (const theme of ['light', 'dark']) {
+  for (const theme of themes) {
     for (const stop of STOPS) {
       const context = await browser.newContext({
         viewport: { width: 1440, height: 900 },

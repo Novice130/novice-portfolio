@@ -313,13 +313,17 @@ const FX_BODY: Record<FxKind, string> = {
     float d = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
     a = 1.0 - smoothstep(-0.02, 0.3, d);
     a *= a;`,
-  // Soft elliptical scallop centred above the top rail. It is zero well inside
-  // the plane, so no rectangle edge can show.
+  // Inverse-square falloff from a tube lamp just above the top rail, 0.25m off
+  // the wall, shaded so it throws light downward. Zero at the plane's edge.
   wall: /* glsl */ `
-    vec2 g = vec2(p.x / (uPlane.x * 0.5), (p.y - uHalf.y * 0.45) / (uPlane.y * 0.5));
-    float s = smoothstep(0.0, 0.9, length(g));
-    a = (1.0 - s) * (1.0 - s);
-    a *= 0.55 + 0.45 * smoothstep(-uHalf.y, uHalf.y + 0.3, p.y);`,
+    vec2 d = p - vec2(0.0, uHalf.y + 0.15);
+    d.x *= 0.45;
+    float h = 0.25;
+    float r2 = dot(d, d) + h * h;
+    a = (h * h / r2) * (h / sqrt(r2));
+    a *= smoothstep(0.05, -0.25, d.y);
+    vec2 e = smoothstep(vec2(1.0), vec2(0.7), abs(vUv - 0.5) * 2.0);
+    a *= e.x * e.y * 6.0;`,
   floor: /* glsl */ `
     float x = (vUv.x - 0.5) * 2.0;
     float d = 1.0 - vUv.y;
@@ -734,9 +738,9 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
   tagTex.anisotropy = maxAniso;
   const tagMat = track(new THREE.MeshBasicMaterial({ map: tagTex, toneMapped: false }));
 
-  const glowColor = new THREE.Color().setRGB(1, 0.74, 0.44);
+  const glowColor = new THREE.Color().setRGB(1, 0.58, 0.26);
   const shadowColor = new THREE.Color().setRGB(0.05, 0.04, 0.03);
-  const picLight = new THREE.Color().setRGB(1, 0.84, 0.6);
+  const picLight = new THREE.Color().setRGB(1, 0.72, 0.42);
 
   const loader = new THREE.TextureLoader();
   let tierKey = NaN;
@@ -1017,8 +1021,9 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
     cu.uDay.value = 0.94 + 0.06 * p.near;
     cu.uFog.value = fog;
 
-    p.shadow.visible = !dark;
-    p.shadow.material.uniforms.uIntensity.value = 0.36;
+    // The frame's contact shadow: from daylight by day, from its own lamp at night.
+    p.shadow.visible = true;
+    p.shadow.material.uniforms.uIntensity.value = dark ? 0.5 * level : 0.36;
     p.wall.visible = true;
     p.wall.material.uniforms.uIntensity.value = (dark ? NIGHT.wall * level : DAY.wall) * (dark ? 0.6 + 0.4 * p.near : 1);
     p.wall.material.uniforms.uFog.value = fog;

@@ -59,6 +59,7 @@ type ThemeSpec = {
   oculus: number;
   oculusIntensity: number;
   glass: number;
+  glassGain: number;
   pool: number;
   poolOpacity: number;
   oculusPoolOpacity: number;
@@ -76,11 +77,12 @@ const THEMES: Record<ThemeName, ThemeSpec> = {
     hemiSky: 0xe9eff8,
     hemiGround: 0xa08c70,
     hemiIntensity: 1.3,
-    sun: 0xffe6c0,
-    sunIntensity: 1.7,
+    sun: 0xffe2b8,
+    sunIntensity: 2.6,
     oculus: 0xf4f0e8,
     oculusIntensity: 105,
     glass: 0xffffff,
+    glassGain: 1.9,
     pool: 0xfff3da,
     poolOpacity: 0.3,
     oculusPoolOpacity: 0.32,
@@ -98,11 +100,12 @@ const THEMES: Record<ThemeName, ThemeSpec> = {
     hemiSky: 0x56607c,
     hemiGround: 0x2a2219,
     hemiIntensity: 0.9,
-    sun: 0x8aa2d4,
-    sunIntensity: 0.8,
-    oculus: 0x7f97c8,
-    oculusIntensity: 34,
+    sun: 0x9fb0d0,
+    sunIntensity: 0.6,
+    oculus: 0xc9b08a,
+    oculusIntensity: 44,
     glass: 0x16223c,
+    glassGain: 1,
     pool: 0x5f7fbf,
     poolOpacity: 0.18,
     oculusPoolOpacity: 0.2,
@@ -1405,7 +1408,7 @@ export function createRoom(ctx: SceneCtx): ScenePart {
   addMesh(stoneB.build(), stoneMat);
   addMesh(giltB.build(), giltMat);
   addMesh(poolB.build(), poolMat, 1);
-  addMesh(aoB.build(), aoMat, 1);
+  addMesh(aoB.build(), aoMat, 1).visible = !high;
 
   const unitBox = geo(new THREE.BoxGeometry(1, 1, 1));
   for (const [batch, material] of [
@@ -1427,6 +1430,39 @@ export function createRoom(ctx: SceneCtx): ScenePart {
   const oculusLight = new THREE.PointLight(0xffffff, 1, 24, 2);
   oculusLight.position.set(SCX, SALON_H + 2.5, SCZ);
   group.add(hemi, sun, oculusLight);
+  if (high) {
+    // Same direction as before (low, from ahead), re-aimed at the corridor's
+    // middle so one orthographic map covers its whole length.
+    const dir = new THREE.Vector3(0, 8, -9).normalize();
+    sun.target.position.set(0, 0, CORRIDOR_MID);
+    sun.position.copy(sun.target.position).addScaledVector(dir, 34);
+    group.add(sun.target);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(4096, 4096);
+    const sc = sun.shadow.camera;
+    sc.left = -HW - 0.5;
+    sc.right = HW + 0.5;
+    sc.top = 22;
+    sc.bottom = -22;
+    sc.near = 4;
+    sc.far = 70;
+    sc.updateProjectionMatrix();
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.03;
+
+    oculusLight.castShadow = true;
+    oculusLight.shadow.mapSize.set(1024, 1024);
+    oculusLight.shadow.camera.near = 0.5;
+    oculusLight.shadow.camera.far = 24;
+    oculusLight.shadow.bias = -0.002;
+
+    // Every lit surface receives; the box batches (pilasters, cornice, benches) and ribs cast.
+    group.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh && (mesh.material as THREE.MeshStandardMaterial).isMeshStandardMaterial) mesh.receiveShadow = true;
+    });
+    for (const mesh of instanced) mesh.castShadow = true;
+  }
 
   const background = new THREE.Color();
   // One FogExp2 for both themes: swapping fog types would recompile every shader.
@@ -1447,7 +1483,8 @@ export function createRoom(ctx: SceneCtx): ScenePart {
     sun.intensity = t.sunIntensity;
     oculusLight.color.setHex(t.oculus);
     oculusLight.intensity = t.oculusIntensity;
-    glassMat.color.setHex(t.glass);
+    // Above 1 on the high tier so the skylight feeds the bloom pass.
+    glassMat.color.setHex(t.glass).multiplyScalar(high ? t.glassGain : 1);
     poolMat.color.setHex(t.pool);
     poolMat.opacity = t.poolOpacity;
     oculusPoolMat.color.setHex(t.pool);

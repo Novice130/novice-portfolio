@@ -189,6 +189,10 @@ export function createEngine(opts: EngineOptions): Engine {
     renderer.toneMapping = T.ACESFilmicToneMapping;
     renderer.toneMappingExposure = TUNING.exposure[theme];
 
+    // Static shadows: maps render only when refreshStatic() flags them.
+    renderer.shadowMap.enabled = quality === 'high';
+    renderer.shadowMap.type = T.PCFSoftShadowMap;
+    renderer.shadowMap.autoUpdate = false;
     const scene = new T.Scene();
     const camera = new T.PerspectiveCamera(TUNING.fovLandscape, 1, TUNING.near, TUNING.far);
     // Yaw-then-pitch: reading pitch and yaw back from the default XYZ order goes unstable
@@ -248,6 +252,16 @@ export function createEngine(opts: EngineOptions): Engine {
 
     /** Re-renders everything that is static between events: shadow maps and reflections. */
     const refreshStatic = () => {
+      if (renderer.shadowMap.enabled) {
+        scene.traverse((o) => {
+          const light = o as THREE.Light;
+          if (light.isLight && light.castShadow && light.shadow) {
+            light.shadow.autoUpdate = false;
+            light.shadow.needsUpdate = true;
+          }
+        });
+        renderer.shadowMap.needsUpdate = true;
+      }
       if (!env) return;
       try {
         env.bake();

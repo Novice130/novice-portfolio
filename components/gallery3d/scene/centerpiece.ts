@@ -1084,7 +1084,12 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
 
   const spot = add(new THREE.SpotLight(0xffffff, 100, 0, SPOT_ANGLE, 0.7, 2));
   spot.position.copy(LIGHT_POS);
-  spot.castShadow = false;
+  spot.castShadow = !low;
+  spot.shadow.mapSize.set(2048, 2048);
+  spot.shadow.camera.near = 3;
+  spot.shadow.camera.far = 12;
+  spot.shadow.bias = -0.0006;
+  spot.shadow.normalBias = 0.02;
   add(spot.target);
   spot.target.position.copy(LIGHT_AIM);
 
@@ -1227,6 +1232,7 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
     setCrackProgress(1.1);
     setUniform(crackMat, 'uTip', 0);
     setUniform(frontMat, 'uGlintStrength', 0);
+    ctx.invalidateStatic();
   };
 
   const startBreaking = () => {
@@ -1240,6 +1246,11 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
   const stepBreaking = (dt: number) => {
     // Frames arrive on demand; a long gap must not skip the whole beat.
     clock += Math.min(dt, 1 / 20);
+    if (!low) {
+      // The only per-frame shadow update in the gallery, for the two seconds the glass falls.
+      spot.shadow.needsUpdate = true;
+      ctx.renderer.shadowMap.needsUpdate = true;
+    }
     if (clock >= ARRIVAL_SECONDS) {
       settle();
       return;
@@ -1300,10 +1311,22 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
     brassMat.color.setHex(spec.brass);
     brassMat.emissive.setHex(spec.brassEmissive);
     ropeMat.color.setHex(spec.rope);
-    shadowMat.opacity = spec.shadow;
+    // The real shadow carries the shape; the painted one only softens the contact.
+    shadowMat.opacity = spec.shadow * (low ? 1 : 0.45);
     plaqueMat.color.setScalar(spec.plaque);
     ctx.invalidate();
   };
+
+  if (!low) {
+    // Solid parts cast and receive; glass panes do not (they would cast solid black).
+    group.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || !(mesh.material as THREE.MeshStandardMaterial).isMeshStandardMaterial) return;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+    });
+    shards.castShadow = true;
+  }
 
   let envReady = false;
   ctx.env?.onBake(() => {
