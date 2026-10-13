@@ -760,6 +760,9 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
   // ---- vitrine: brass profiles, four whole panes, one broken pane
 
   const brassMat = own(new THREE.MeshStandardMaterial({ roughness: 0.38, metalness: 0.55 }));
+  ctx.env?.register(brassMat, 'salon', { metalness: 1, roughness: 0.3 });
+  ctx.env?.register(plinthMat, 'salon');
+  ctx.env?.register(bezelMat, 'salon');
   const edges = add(new THREE.InstancedMesh(unitBox, brassMat, 12));
   {
     const e = CASE.edge;
@@ -802,6 +805,8 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
     uniform float uSheen;
     uniform float uGlint;
     uniform float uGlintStrength;
+    uniform samplerCube uEnv;
+    uniform float uEnvStrength;
     varying vec2 vUv;
     varying vec3 vNormal;
     varying vec3 vView;
@@ -815,7 +820,17 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
       float band = (diag - uGlint) / 0.07;
       float glint = exp(-band * band) * uGlintStrength;
       float alpha = uOpacity + fresnel * uFresnel + sheen * uSheen + glint;
-      gl_FragColor = vec4(uTint + vec3(glint), clamp(alpha, 0.0, 1.0) * fogFade);
+      // Sharp reflection of the salon, in world space.
+      vec3 n = normalize(vNormal);
+      vec3 v = normalize(vView);
+      if (dot(n, v) < 0.0) n = -n;
+      vec3 reflected = (vec4(reflect(-v, n), 0.0) * viewMatrix).xyz;
+      float schlick = 0.04 + 0.96 * pow(1.0 - facing, 5.0);
+      vec3 refl = textureCube(uEnv, reflected).rgb * schlick * uEnvStrength;
+      float reflA = clamp(dot(refl, vec3(0.3333)), 0.0, 1.0);
+      float outA = clamp(alpha + reflA, 0.0, 1.0);
+      vec3 body = (uTint + vec3(glint)) * clamp(alpha, 0.0, 1.0);
+      gl_FragColor = vec4((body + refl) / max(outA, 1e-4), outA * fogFade);
       #include <colorspace_fragment>
     }
   `;
@@ -826,6 +841,8 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
     uSheen: { value: 0.04 },
     uGlint: { value: -1 },
     uGlintStrength: { value: 0 },
+    uEnv: { value: null as THREE.CubeTexture | null },
+    uEnvStrength: { value: 0 },
   });
   const glassMat = own(shader(glassUniforms(), glassVertex, glassFragment, { side: THREE.DoubleSide }));
   const frontMat = own(shader(glassUniforms(), glassVertex, glassFragment, { side: THREE.DoubleSide }));
@@ -969,7 +986,9 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
           float edge = 1.0 - smoothstep(0.0, 0.05 + fwidth(nearest) * 1.5, nearest);
           float twinkle = pow(max(0.0, sin(uTime * (0.35 + vSeed * 0.5) + vSeed * 40.0)), 24.0) * uTwinkle;
           float alpha = uBody * (0.6 + vSeed * 0.8) + edge * uEdge + twinkle;
-          gl_FragColor = vec4(uTint * (1.0 + edge * 0.4 + twinkle), clamp(alpha, 0.0, 1.0) * fogFade);
+          // Cut glass shows green at its edge.
+          vec3 rim = mix(vec3(1.0), vec3(0.72, 1.0, 0.86), edge);
+          gl_FragColor = vec4(uTint * rim * (1.0 + edge * 0.4 + twinkle), clamp(alpha, 0.0, 1.0) * fogFade);
           #include <colorspace_fragment>
         }
       `,
@@ -1262,7 +1281,7 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
       (material.uniforms.uTint as THREE.IUniform<THREE.Color>).value.setHex(spec.glassTint);
       setUniform(material, 'uOpacity', spec.glassOpacity);
       setUniform(material, 'uFresnel', spec.glassFresnel);
-      setUniform(material, 'uSheen', spec.glassSheen);
+      setUniform(material, 'uSheen', spec.glassSheen * (envReady ? 0.25 : 1));
     }
 
     (crackMat.uniforms.uColor as THREE.IUniform<THREE.Color>).value.setHex(spec.crackColor);
@@ -1285,6 +1304,18 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
     plaqueMat.color.setScalar(spec.plaque);
     ctx.invalidate();
   };
+
+  let envReady = false;
+  ctx.env?.onBake(() => {
+    const cube = ctx.env?.cube('salon') ?? null;
+    envReady = !!cube;
+    for (const material of [glassMat, frontMat]) {
+      (material.uniforms.uEnv as THREE.IUniform<THREE.CubeTexture | null>).value = cube;
+      setUniform(material, 'uEnvStrength', cube ? 1.4 : 0);
+      // The painted diagonal sheen stands in for a reflection; fade it once there is a real one.
+      setUniform(material, 'uSheen', spec.glassSheen * (cube ? 0.25 : 1));
+    }
+  });
 
   shards.visible = false;
   setTheme(ctx.theme);

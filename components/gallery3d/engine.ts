@@ -130,6 +130,7 @@ function pickQuality(): Quality {
 
 type RenderModules = {
   matLib: typeof import('./render/materialLibrary');
+  envMod: typeof import('./render/environment');
 };
 
 export function createEngine(opts: EngineOptions): Engine {
@@ -143,11 +144,11 @@ export function createEngine(opts: EngineOptions): Engine {
     let loaded = 0;
     const track = <M>(p: Promise<M>) =>
       p.then((m) => {
-        if (!disposed) opts.onProgress?.(0.12 + (0.6 * ++loaded) / 7);
+        if (!disposed) opts.onProgress?.(0.12 + (0.6 * ++loaded) / 8);
         return m;
       });
     opts.onProgress?.(0.12);
-    const [T, room, artworks, centerpiece, visitors, nav, matLib] = await Promise.all([
+    const [T, room, artworks, centerpiece, visitors, nav, matLib, envMod] = await Promise.all([
       track(import('three')),
       track(import('./scene/room')),
       track(import('./scene/artworks')),
@@ -155,10 +156,12 @@ export function createEngine(opts: EngineOptions): Engine {
       track(import('./scene/visitors')),
       track(import('./scene/navArrows')),
       track(import('./render/materialLibrary')),
+      track(import('./render/environment')),
     ]);
     if (disposed) return;
     live = start(T, [room.createRoom, artworks.createArtworks, centerpiece.createCenterpiece, visitors.createVisitors, nav.createNavArrows], {
       matLib,
+      envMod,
     });
   };
 
@@ -219,15 +222,42 @@ export function createEngine(opts: EngineOptions): Engine {
           part.dispose();
         } catch {}
       }
+      env?.dispose();
       materials.dispose();
       renderer.dispose();
       // The canvas is thrown away with the walk; hand the GPU context back now.
       renderer.forceContextLoss();
     };
 
-    const invalidateStatic = () => invalidate();
+    let staticDirty = true;
+    let lastBake = -Infinity;
+    const invalidateStatic = () => {
+      staticDirty = true;
+      invalidate();
+    };
     const materials = mods.matLib.createMaterialLibrary(renderer, quality, () => invalidateStatic());
-    const ctx: SceneCtx = { renderer, scene, camera, theme, quality, materials, invalidate, invalidateStatic };
+    let navGroup: THREE.Object3D | null = null;
+    let env: ReturnType<typeof mods.envMod.createEnvironment> | null = null;
+    try {
+      // Floor markers and cursors must not appear in reflections.
+      env = mods.envMod.createEnvironment(renderer, scene, () => (navGroup ? [navGroup] : []));
+    } catch (err) {
+      console.warn('[gallery3d] room reflections unavailable', err);
+    }
+    const ctx: SceneCtx = { renderer, scene, camera, theme, quality, materials, env, invalidate, invalidateStatic };
+
+    /** Re-renders everything that is static between events: shadow maps and reflections. */
+    const refreshStatic = () => {
+      if (!env) return;
+      try {
+        env.bake();
+      } catch (err) {
+        console.warn('[gallery3d] room reflections failed; continuing without', err);
+        env.dispose();
+        env = null;
+        ctx.env = null;
+      }
+    };
     try {
       for (const make of factories) {
         const part = make(ctx);
@@ -238,6 +268,9 @@ export function createEngine(opts: EngineOptions): Engine {
       destroy();
       throw err;
     }
+
+    // createNavArrows is the last factory.
+    navGroup = parts[parts.length - 1]?.group ?? null;
 
     // ---- the rail ----------------------------------------------------------
 
@@ -476,6 +509,14 @@ export function createEngine(opts: EngineOptions): Engine {
 
       if (place(dt)) busy = true;
       for (const part of parts) if (part.update?.(dt, elapsed, focus)) busy = true;
+      // Texture arrivals come in bursts at load: at most one bake per 250ms.
+      if (staticDirty) {
+        if (now - lastBake > 250) {
+          staticDirty = false;
+          lastBake = now;
+          refreshStatic();
+        } else busy = true;
+      }
       renderer.render(scene, camera);
       if (debug) canvas.dataset.g3frames = String(++frameCount);
 
@@ -550,7 +591,7 @@ export function createEngine(opts: EngineOptions): Engine {
       ctx.theme = next;
       renderer.toneMappingExposure = TUNING.exposure[next];
       for (const part of parts) part.setTheme(next);
-      invalidate();
+      invalidateStatic();
     };
     const mo = new MutationObserver(() => setTheme(readTheme()));
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-gtheme'] });
@@ -663,7 +704,7 @@ export function createEngine(opts: EngineOptions): Engine {
     );
     listen(canvas, 'webglcontextrestored', () => {
       lost = false;
-      invalidate();
+      invalidateStatic();
     });
 
     resize();

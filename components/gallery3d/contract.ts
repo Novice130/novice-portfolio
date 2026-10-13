@@ -6,6 +6,7 @@
 // the Grande Galerie, which opens into a round salon holding the centrepiece.
 import type * as THREE from 'three';
 import { centerpiece, pieces } from '@/data/gallery';
+import type { Environment } from './render/environment';
 import type { MaterialLibrary } from './render/materialLibrary';
 
 export type ThemeName = 'light' | 'dark';
@@ -150,6 +151,8 @@ export type SceneCtx = {
   quality: Quality;
   /** Scanned texture sets. `apply` is async and leaves the material alone on failure. */
   materials: MaterialLibrary;
+  /** Room reflections; null if the bake is unavailable. Register materials at build time. */
+  env: Environment | null;
   /** Call when async work (a texture arriving) needs a new frame. */
   invalidate: () => void;
   /**

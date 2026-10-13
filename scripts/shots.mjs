@@ -18,6 +18,18 @@ const STOPS = ['', 'citcd', 'phet-remaster', 'centerpiece', 'door'];
 const PIECES = new Set(['citcd', 'phet-remaster']);
 
 await mkdir(out, { recursive: true });
+// Wait until the on-demand renderer has drawn nothing for a second (or 25s at most).
+const settle = async (page) => {
+  const frames = () => page.evaluate(() => Number(document.querySelector('canvas')?.dataset.g3frames ?? 0));
+  let last = await frames();
+  for (let i = 0; i < 25; i++) {
+    await page.waitForTimeout(1000);
+    const now = await frames();
+    if (now === last && now > 0) return;
+    last = now;
+  }
+};
+
 const browser = await chromium.launch();
 try {
   for (const theme of ['light', 'dark']) {
@@ -35,11 +47,14 @@ try {
       const query = `?g3debug${quality ? `&g3q=${quality}` : ''}`;
       await page.goto(`${base}/${query}${stop ? `#${stop}` : ''}`);
       await page.waitForSelector('html[data-g3="live"]', { timeout: 30000 });
-      await page.waitForTimeout(stop === 'centerpiece' ? 5000 : 3500);
+      // The centrepiece animates by design and never goes idle: a fixed wait there.
+      if (stop === 'centerpiece' || stop === 'door') await page.waitForTimeout(9000);
+      else await settle(page);
       // A work's link opens facing it; --center steps back to the centre line.
       if (center && PIECES.has(stop)) {
         await page.keyboard.press('ArrowDown');
-        await page.waitForTimeout(4000);
+        await page.waitForTimeout(500);
+        await settle(page);
       }
       const file = path.join(out, `${theme}-${stop || 'intro'}${center && PIECES.has(stop) ? '-center' : ''}.png`);
       await page.screenshot({ path: file });

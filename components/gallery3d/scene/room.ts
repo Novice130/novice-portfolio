@@ -75,7 +75,7 @@ const THEMES: Record<ThemeName, ThemeSpec> = {
     fogDensity: 0.007,
     hemiSky: 0xe9eff8,
     hemiGround: 0xa08c70,
-    hemiIntensity: 2.3,
+    hemiIntensity: 1.3,
     sun: 0xffe6c0,
     sunIntensity: 1.7,
     oculus: 0xf4f0e8,
@@ -85,7 +85,7 @@ const THEMES: Record<ThemeName, ThemeSpec> = {
     poolOpacity: 0.3,
     oculusPoolOpacity: 0.32,
     aoOpacity: 0.7,
-    giltEmissive: 0.18,
+    giltEmissive: 0.05,
     doorTint: 0xffffff,
     doorGlowOpacity: 0.12,
     signTint: 0xffffff,
@@ -97,7 +97,7 @@ const THEMES: Record<ThemeName, ThemeSpec> = {
     fogDensity: 0.016,
     hemiSky: 0x56607c,
     hemiGround: 0x2a2219,
-    hemiIntensity: 1.0,
+    hemiIntensity: 0.9,
     sun: 0x8aa2d4,
     sunIntensity: 0.8,
     oculus: 0x7f97c8,
@@ -107,7 +107,7 @@ const THEMES: Record<ThemeName, ThemeSpec> = {
     poolOpacity: 0.18,
     oculusPoolOpacity: 0.2,
     aoOpacity: 0.65,
-    giltEmissive: 0.2,
+    giltEmissive: 0.06,
     doorTint: 0xcfcfcf,
     doorGlowOpacity: 0.45,
     signTint: 0xd8d0c0,
@@ -1386,6 +1386,14 @@ export function createRoom(ctx: SceneCtx): ScenePart {
   lib.apply(salonFloorMat, 'marble', { repeat: [(2 * R) / 1.5, (2 * R) / 1.5], keepMap: true, roughness: 0.45 });
   lib.apply(vaultMat, 'plaster', { repeat: [1, 1], keepMap: true, normalScale: 0.5 });
   lib.apply(domeMat, 'plaster', { repeat: [24, 5], keepMap: true, normalScale: 0.5 });
+
+  // --- Reflections ---------------------------------------------------------
+  // Rough surfaces take the map too: it is also their bounce light.
+  if (ctx.env) {
+    for (const m of [floorMat, wallMat, dadoMat, vaultMat, stoneMat, darkMat]) ctx.env.register(m, 'corridor');
+    for (const m of [salonWallMat, domeMat, salonFloorMat]) ctx.env.register(m, 'salon');
+    ctx.env.register(giltMat, 'corridor', { metalness: 1, roughness: 0.32 });
+  }
 
   // --- Assemble ------------------------------------------------------------
   addMesh(floorB.build(), floorMat);

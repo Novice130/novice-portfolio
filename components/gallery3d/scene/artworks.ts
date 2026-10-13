@@ -212,9 +212,14 @@ function createSweep(profile: Profile): Sweep {
 const VERT = /* glsl */ `
 #include <fog_pars_vertex>
 varying vec2 vUv;
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;
 void main() {
   vUv = uv;
-  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  vec4 world = modelMatrix * vec4(position, 1.0);
+  vWorldPos = world.xyz;
+  vWorldNormal = normalize(mat3(modelMatrix) * normal);
+  vec4 mvPosition = viewMatrix * world;
   gl_Position = projectionMatrix * mvPosition;
   #include <fog_vertex>
 }`;
@@ -248,6 +253,10 @@ uniform float uDesat;
 uniform float uDark;
 uniform float uLevel;
 uniform float uDay;
+uniform samplerCube uEnv;
+uniform float uGloss;
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;
 varying vec2 vUv;
 ${FOG_GLSL}
 void main() {
@@ -279,6 +288,14 @@ void main() {
   vec3 night = tint * mix(0.92, 1.1, lamp) * uLevel;
   vec3 day = vec3(uDay * mix(0.98, 1.03, lamp));
   col *= mix(day, night, uDark);
+
+  // Glazing: a faint, slightly blurred reflection of the room, stronger at a glancing angle.
+  vec3 viewDir = normalize(vWorldPos - cameraPosition);
+  vec3 n = normalize(vWorldNormal);
+  // Capped well below true Fresnel: at a glancing angle real glazing turns to
+  // mirror, which would white out every work seen down the corridor.
+  float fres = 0.04 + 0.2 * pow(1.0 - max(dot(-viewDir, n), 0.0), 4.0);
+  col += textureCube(uEnv, reflect(viewDir, n), 2.5).rgb * fres * uGloss;
 
   #ifdef USE_FOG
     col = mix(col, fogColor, fogMix());
@@ -356,6 +373,8 @@ function makeCanvasMaterial(restoration: boolean): THREE.ShaderMaterial {
       uLevel: { value: 1 },
       uDay: { value: 1 },
       uFog: { value: 1 },
+      uEnv: { value: null },
+      uGloss: { value: 0 },
     },
   ]);
   return new THREE.ShaderMaterial({
@@ -699,8 +718,8 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
     brass: track(grainTexture('#f2f2f2', 0.02, 0.1, 120, false, 23)),
   };
   const frameParams: Record<FrameStyle, THREE.MeshStandardMaterialParameters> = {
-    // Metalness is kept moderate on purpose: with no environment map a full
-    // metal has no diffuse response and would render black under ambient light.
+    // Moderate metalness is the fallback look; ctx.env raises gilt and brass to
+    // full metals once the room reflection exists.
     gilt: { color: 0xcfa552, metalness: 0.5, roughness: 0.42, map: frameTex.gilt, bumpMap: frameTex.gilt, bumpScale: 1.4 },
     walnut: { color: 0xffffff, metalness: 0, roughness: 0.56, map: frameTex.walnut },
     brass: { color: 0xb9955c, metalness: 0.55, roughness: 0.36, map: frameTex.brass },
@@ -708,6 +727,7 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
 
   const hitMat = track(new THREE.MeshBasicMaterial({ visible: false }));
   const fixtureMat = track(new THREE.MeshStandardMaterial({ color: 0x9a7b45, metalness: 0.55, roughness: 0.4 }));
+  ctx.env?.register(fixtureMat, 'corridor', { metalness: 1, roughness: 0.35 });
   const lampMat = track(new THREE.MeshBasicMaterial({ toneMapped: false }));
   const tagTex = track(new THREE.CanvasTexture(drawTag(high ? 2 : 1)));
   tagTex.colorSpace = THREE.SRGBColorSpace;
@@ -723,6 +743,14 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
 
   const paintings = pieces.map(buildPainting);
   const hotspots: Hotspot[] = paintings.map((p) => ({ object: p.hit, stopId: p.piece.id }));
+
+  ctx.env?.onBake(() => {
+    const cube = ctx.env?.cube('corridor') ?? null;
+    for (const p of paintings) {
+      p.canvas.material.uniforms.uEnv.value = cube;
+      p.canvas.material.uniforms.uGloss.value = cube ? 0.5 : 0;
+    }
+  });
 
   loadNearestFirst();
   setTheme(theme);
@@ -771,6 +799,12 @@ export function createArtworks(ctx: SceneCtx): ScenePart {
     const frameUniforms: FrameUniforms = { uPicLight: { value: new THREE.Color(0, 0, 0) }, uPicHalfH: { value: 1 } };
     const frameMat = track(makeFrameMaterial(frameParams[piece.frame], frameUniforms));
     if (piece.frame === 'walnut') ctx.materials.apply(frameMat, 'walnut', { repeat: [0.5, 1], roughness: 0.8 });
+    // Gilt and brass become true metals once there is a room to reflect.
+    ctx.env?.register(
+      frameMat,
+      'corridor',
+      piece.frame === 'gilt' ? { metalness: 1, roughness: 0.38 } : piece.frame === 'brass' ? { metalness: 1, roughness: 0.3 } : {},
+    );
     hung.add(new THREE.Mesh(sweep.geometry, frameMat));
 
     const hit = new THREE.Mesh(unitBox, hitMat);
