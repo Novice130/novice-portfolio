@@ -4,6 +4,7 @@
 // Everything is built in the group's local space: origin on the floor at
 // SALON.center, +Z toward the corridor (the side the visitor arrives from).
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import {
   PLINTH,
   SALON,
@@ -670,12 +671,15 @@ export function createCenterpiece(ctx: SceneCtx): ScenePart {
   ctx.materials.apply(plinthMat, 'marble', { repeat: [1.4, 0.7], roughness: 0.5 });
   const unitBox = own(new THREE.BoxGeometry(1, 1, 1));
 
-  const plinth = add(new THREE.Mesh(unitBox, plinthMat));
-  plinth.scale.set(PLINTH.width, PLINTH.height, PLINTH.depth);
+  const edge = low ? 0 : 0.012;
+  const plinth = add(
+    new THREE.Mesh(own(new RoundedBoxGeometry(PLINTH.width, PLINTH.height, PLINTH.depth, 3, edge)), plinthMat),
+  );
   plinth.position.y = PLINTH.height / 2;
 
-  const step = add(new THREE.Mesh(unitBox, plinthMat));
-  step.scale.set(PLINTH.width + 0.16, 0.07, PLINTH.depth + 0.16);
+  const step = add(
+    new THREE.Mesh(own(new RoundedBoxGeometry(PLINTH.width + 0.16, 0.07, PLINTH.depth + 0.16, 3, edge)), plinthMat),
+  );
   step.position.y = 0.035;
 
   const flatPlane = own(new THREE.PlaneGeometry(1, 1));

@@ -4,6 +4,8 @@
 // Everything is built once. setTheme only mutates colours, intensities and
 // opacities, so it is safe to call at any time.
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   CORRIDOR,
   DOOR,
@@ -195,15 +197,29 @@ class BoxBatch {
     this.boxes.push({ c: [cx, cy, cz], s: [sx, sy, sz] });
   }
 
-  build(unitBox: THREE.BufferGeometry, material: THREE.Material): THREE.InstancedMesh {
-    const mesh = new THREE.InstancedMesh(unitBox, material, this.boxes.length);
-    const m = new THREE.Matrix4();
-    this.boxes.forEach((b, i) => {
-      m.makeScale(b.s[0], b.s[1], b.s[2]).setPosition(b.c[0], b.c[1], b.c[2]);
-      mesh.setMatrixAt(i, m);
+  /**
+   * bevel = 0: one instanced unit box (cheap, hard edges; the low tier).
+   * bevel > 0: every box at its true size with rounded edges, merged into one
+   * mesh. A hard 90 degree edge catches no highlight and reads as a game level.
+   */
+  build(unitBox: THREE.BufferGeometry, material: THREE.Material, bevel = 0): THREE.Mesh {
+    if (bevel <= 0) {
+      const mesh = new THREE.InstancedMesh(unitBox, material, this.boxes.length);
+      const m = new THREE.Matrix4();
+      this.boxes.forEach((b, i) => {
+        m.makeScale(b.s[0], b.s[1], b.s[2]).setPosition(b.c[0], b.c[1], b.c[2]);
+        mesh.setMatrixAt(i, m);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+      return mesh;
+    }
+    const parts = this.boxes.map((b) => {
+      const r = Math.min(bevel, Math.min(b.s[0], b.s[1], b.s[2]) * 0.25);
+      return new RoundedBoxGeometry(b.s[0], b.s[1], b.s[2], 2, r).translate(b.c[0], b.c[1], b.c[2]);
     });
-    mesh.instanceMatrix.needsUpdate = true;
-    return mesh;
+    const merged = mergeGeometries(parts);
+    parts.forEach((g) => g.dispose());
+    return new THREE.Mesh(merged ?? unitBox, material);
   }
 }
 
@@ -821,7 +837,7 @@ export function createRoom(ctx: SceneCtx): ScenePart {
   const geometries: THREE.BufferGeometry[] = [];
   const materials: THREE.Material[] = [];
   const textures: THREE.Texture[] = [];
-  const instanced: THREE.InstancedMesh[] = [];
+  const instanced: THREE.Mesh[] = [];
   let disposed = false;
 
   const geo = <T extends THREE.BufferGeometry>(g: T): T => {
@@ -985,6 +1001,10 @@ export function createRoom(ctx: SceneCtx): ScenePart {
     giltBoxes.add(side * (HW - 0.12), WALL_H - 0.305, CORRIDOR_MID, 0.24, 0.05, CORRIDOR_LEN);
     // Curb of the skylight.
     stoneBoxes.add(side * SKY_HALF, vaultY(SKY_HALF) - 0.05, CORRIDOR_MID, 0.12, 0.14, CORRIDOR_LEN);
+    // Skirting board at the foot of the dado, and a picture rail above the frames
+    // (tallest frame plus its lamp tops out near 3.85m; capitals start at 4.95m).
+    stoneBoxes.add(side * (HW - 0.0125), 0.07, CORRIDOR_MID, 0.025, 0.14, CORRIDOR_LEN);
+    giltBoxes.add(side * (HW - 0.015), 4.35, CORRIDOR_MID, 0.03, 0.045, CORRIDOR_LEN);
 
     // Contact shading: floor against the wall, wall foot, and under the cornice.
     const xin = side * (HW - 0.004);
@@ -1417,7 +1437,8 @@ export function createRoom(ctx: SceneCtx): ScenePart {
     [giltBoxes, giltMat],
     [darkBoxes, darkMat],
   ] as const) {
-    const mesh = batch.build(unitBox, material);
+    const mesh = batch.build(unitBox, material, high ? 0.012 : 0);
+    if (mesh.geometry !== unitBox) geometries.push(mesh.geometry);
     instanced.push(mesh);
     group.add(mesh);
   }
@@ -1506,7 +1527,7 @@ export function createRoom(ctx: SceneCtx): ScenePart {
     if (ctx.scene.background === background) ctx.scene.background = null;
     group.removeFromParent();
     group.clear();
-    instanced.forEach((m) => m.dispose());
+    instanced.forEach((m) => (m as THREE.InstancedMesh).isInstancedMesh && (m as THREE.InstancedMesh).dispose());
     geometries.forEach((g) => g.dispose());
     materials.forEach((m) => m.dispose());
     textures.forEach((t) => t.dispose());
