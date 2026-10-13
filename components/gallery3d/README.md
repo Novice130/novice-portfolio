@@ -168,6 +168,10 @@ Worth knowing so they are not reintroduced:
 
 ## Open items
 
+- `apache-tandoori` and `cpts-companion` still use their 1200px JPEGs: both
+  sites show a login screen to `npm run capture`. Capture them signed in at
+  2400px wide and save as `public/gallery/<id>.webp` and `<id>-1200.webp`.
+- The Tandoori logo on the plaque is 144px; supply a larger source.
 - The Apache Tandoori button still points to `view.learnnovice.com`. Change
   `centerpiece.href` in `data/gallery.ts` once the repository is public.
 - Source screenshots in `public/gallery/` are 1200px wide. Sampling is as sharp
